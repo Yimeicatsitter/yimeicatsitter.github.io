@@ -67,6 +67,19 @@ summary::-webkit-details-marker{display:none}summary::before{content:"▸ "}deta
 .row{display:flex;gap:8px}.row .primary{width:auto;padding:11px 18px;font-size:14px;flex:0 0 auto}
 .cl{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-top:1.5px dashed var(--border);font-size:15px}
 .cl button{padding:8px 13px;border-radius:12px;border:2px solid var(--blue);background:var(--blueSoft);color:#2A8FDA;font-size:13px;font-weight:700}
+.card,.s,.stat{background:rgba(255,255,255,.88)}
+.hello{display:flex;align-items:center;gap:12px;margin:2px 0 16px}
+.hello svg{width:64px;height:auto;flex:0 0 auto;filter:drop-shadow(0 4px 6px rgba(255,111,168,.25))}
+.bubble{position:relative;background:#fff;border:2px solid var(--border);border-radius:18px;padding:11px 15px;font-size:14.5px;font-weight:700;color:var(--text);box-shadow:0 6px 16px rgba(255,111,168,.14)}
+.bubble::before{content:"";position:absolute;left:-9px;top:50%;margin-top:-7px;border:7px solid transparent;border-left:0;border-right:9px solid var(--border)}
+.stat{position:relative;margin-top:10px}
+.stat::before,.stat::after{content:"";position:absolute;top:-10px;border:9px solid transparent;border-top:0;border-bottom:12px solid var(--ec)}
+.stat::before{left:16px}.stat::after{right:16px}
+.stat.p{--ec:#FFE07A}.stat.c{--ec:#8FE3C4}.stat.r{--ec:#FFA3B8}
+.stat .ic{font-size:20px;display:block;margin-bottom:2px}
+.s{border-left-width:8px}.s.sp{border-left-color:#FFD24D}.s.sc{border-left-color:#4FD1A5}.s.sr{border-left-color:#FF7C9C}
+.av{display:inline-flex;width:34px;height:34px;border-radius:50%;align-items:center;justify-content:center;background:var(--pinkSoft);font-size:19px;margin-right:8px;vertical-align:middle}
+.empty .big{font-size:44px;display:block;margin-bottom:6px}
 </style></head>
 <body><svg class="bg" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
 <defs><pattern id="cats" width="340" height="340" patternUnits="userSpaceOnUse"><g opacity=".6">
@@ -121,6 +134,8 @@ const stTxt = s => s === 'confirmed' ? '已接受' : s === 'rejected' ? '已拒�
 function toast(t){ const el = document.getElementById('toast'); el.textContent = t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'), 2200); }
 async function api(p){ const r = await fetch(API_URL + '?' + new URLSearchParams({...p, a:key})); return r.json(); }
 
+const AV = ['🐱','😸','🐈','😻','🐯','😽','🐾','🦁'];
+const av = n => AV[[...String(n)].reduce((h,ch) => (h*31 + ch.charCodeAt(0)) >>> 0, 7) % AV.length];
 function group(list){
   const m = {};
   list.forEach(b => { const k = b.seriesId || b.id; (m[k] = m[k] || {sid:k, days:[]}).days.push(b); });
@@ -165,19 +180,19 @@ function render(){
   const list = tab === 'pending' ? all.filter(s => s.c.pending > 0) : tab === 'done' ? all.filter(s => s.c.pending === 0) : all;
   const nPend = all.filter(s => s.c.pending > 0).length;
   app.innerHTML = `
-    <div class="head"><svg viewBox="-46 -46 92 82" width="46" height="42" aria-hidden="true"><g transform="translate(0,0) scale(1)">
+    <h1 style="margin:0 0 8px">猫咪预约后台 🐾</h1>
+    <div class="hello"><svg viewBox="-46 -46 92 82" width="46" height="42" aria-hidden="true"><g transform="translate(0,0) scale(1)">
 <path d="M-34 -6 L-30 -42 L-8 -27 Z" fill="#FFB3D1"/><path d="M34 -6 L30 -42 L8 -27 Z" fill="#FFB3D1"/>
 <ellipse rx="37" ry="30" fill="#FFB3D1"/>
 <circle cx="-13" cy="-3" r="3.2" fill="#6B5A80"/><circle cx="13" cy="-3" r="3.2" fill="#6B5A80"/>
 <path d="M-3 5 L3 5 L0 9 Z" fill="#FF6FA8"/>
 <path d="M0 9 Q-4 14 -8 11 M0 9 Q4 14 8 11" stroke="#6B5A80" stroke-width="1.6" fill="none" stroke-linecap="round"/>
 <path d="M-24 7 L-42 3 M-24 12 L-42 15 M24 7 L42 3 M24 12 L42 15" stroke="#6B5A80" stroke-width="1.3" stroke-linecap="round"/>
-<circle cx="-23" cy="6" r="4" fill="#FF8FBE" opacity=".55"/><circle cx="23" cy="6" r="4" fill="#FF8FBE" opacity=".55"/></g></svg><h1>猫咪预约后台</h1></div>
-    <p class="sub">下面的数字按"天"统计。每个申请(系列)可以整个处理,也可以展开逐天处理。</p>
+<circle cx="-23" cy="6" r="4" fill="#FF8FBE" opacity=".55"/><circle cx="23" cy="6" r="4" fill="#FF8FBE" opacity=".55"/></g></svg><div class="bubble">${nPend ? '喵~ 有 <b style="color:var(--pink)">' + nPend + '</b> 个申请等你处理 🐾' : '喵~ 暂时没有待处理的申请,可以休息啦 😽'}</div></div>
     <div class="stats">
-      <div class="stat p"><div class="n">${tot.pending}</div><div class="l">待确认(天)</div></div>
-      <div class="stat c"><div class="n">${tot.confirmed}</div><div class="l">已接受(天)</div></div>
-      <div class="stat r"><div class="n">${tot.rejected}</div><div class="l">已拒绝(天)</div></div>
+      <div class="stat p"><span class="ic">⏳</span><div class="n">${tot.pending}</div><div class="l">待确认(天)</div></div>
+      <div class="stat c"><span class="ic">💚</span><div class="n">${tot.confirmed}</div><div class="l">已接受(天)</div></div>
+      <div class="stat r"><span class="ic">🙈</span><div class="n">${tot.rejected}</div><div class="l">已拒绝(天)</div></div>
     </div>
     <div class="tabs">
       <div class="tab ${tab==='pending'?'active':''}" data-a="tab" data-t="pending">待处理 (${nPend})</div>
@@ -186,21 +201,21 @@ function render(){
     </div>
     <div id="list">${list.length ? list.map(s => {
       const n = s.days.length, c = s.c;
-      return `<div class="s">
-        <div class="top"><div><div class="rng">${esc(s.name)}</div><div class="meta" style="margin:2px 0 0">${rng(s.start, s.end)}</div></div>
+      return `<div class="s ${c.pending ? 'sp' : (c.rejected === n ? 'sr' : 'sc')}">
+        <div class="top"><div><div class="rng"><span class="av">${av(s.name)}</span>${esc(s.name)}</div><div class="meta" style="margin:2px 0 0">${rng(s.start, s.end)}</div></div>
           <div>${c.pending ? `<span class="chip p">⏳ ${c.pending}</span>` : ''}${c.confirmed ? `<span class="chip c">✓ ${c.confirmed}</span>` : ''}${c.rejected ? `<span class="chip r">✕ ${c.rejected}</span>` : ''}</div></div>
         <div class="meta">共 ${n} 天 · ${freqTxt(s.freq, s.time)}</div>
         ${s.note ? `<div class="note">📝 ${esc(s.note)}</div>` : ''}
         <div class="acts">
-          <button class="ok" data-a="series" data-sid="${s.sid}" data-s="confirmed">✓ 整个系列接受</button>
-          <button class="no" data-a="series" data-sid="${s.sid}" data-s="rejected">✕ 整个系列拒绝</button>
+          <button class="ok" data-a="series" data-sid="${s.sid}" data-s="confirmed">🐾 整个系列接受</button>
+          <button class="no" data-a="series" data-sid="${s.sid}" data-s="rejected">🙅 整个系列拒绝</button>
           <button class="del" data-a="delseries" data-sid="${s.sid}">删除</button>
         </div>
         ${n > 1 ? `<details data-sid="${s.sid}" ${openSet.has(s.sid) ? 'open' : ''}><summary>逐天处理(${n} 天)</summary>
           ${s.days.map(d => `<div class="day"><span>${wd(d.date)} <span class="badge ${d.status}">${stTxt(d.status)}</span></span>
             <span class="mini">${d.status !== 'confirmed' ? `<button class="ok" data-a="day" data-id="${d.id}" data-s="confirmed">✓</button>` : ''}${d.status !== 'rejected' ? `<button class="no" data-a="day" data-id="${d.id}" data-s="rejected">✕</button>` : ''}${d.status !== 'pending' ? `<button data-a="day" data-id="${d.id}" data-s="pending">↺</button>` : ''}</span></div>`).join('')}</details>` : ''}
       </div>`;
-    }).join('') : '<div class="empty">这里没有预约 🐾</div>'}</div>
+    }).join('') : '<div class="empty"><span class="big">😺</span>这里还没有预约,猫咪们都睡着啦 💤</div>'}</div>
     <div class="card" style="margin-top:22px">
       <h2>猫咪主人(每人一个专属链接)</h2>
       <div class="row" style="margin-bottom:8px"><input type="text" id="newName" placeholder="新客户名字,如 Lisa"><button class="primary" data-a="addc">添加</button></div>
