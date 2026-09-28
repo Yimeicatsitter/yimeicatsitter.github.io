@@ -157,7 +157,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbzcWLuB2Yz3xUYrJBfcbInX
 const WA = "4917682543276", IG = "Mayuyu_ym";
 const K = new URLSearchParams(location.search).get('k');
 const app = document.getElementById('app');
-let name = '', days = [], freq = 'once', time = 'morning', built = false, ops = 0, view = 'list', calM = new Date(new Date().getFullYear(), new Date().getMonth(), 1), calSel = '';
+let name = '', days = [], freq = 'once', time = 'morning', built = false, ops = 0, view = 'list', calM = new Date(new Date().getFullYear(), new Date().getMonth(), 1), calSel = '', justSent = false;
 const openSet = new Set();
 
 const esc = s => String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -304,7 +304,7 @@ function calHTML(){
 }
 
 function renderList(){
-  const nb = document.getElementById('notifyBox'); if(nb) nb.style.display = days.length ? '' : 'none';
+  const nb = document.getElementById('notifyBox'); if(nb) nb.style.display = justSent ? '' : 'none';
   const list = document.getElementById('list');
   if(view === 'cal'){ list.innerHTML = calHTML(); return; }
   const series = group(days);
@@ -354,7 +354,7 @@ async function send(){
   const f = freq, t = f === 'twice' ? 'any' : time, sid = 'tmp' + Date.now();
   const btn = document.getElementById('send'); btn.disabled = true; setTimeout(() => btn.disabled = false, 900);
   const added = eachDay(start, end).map((d, i) => ({id:'tmp' + i + sid, seriesId:sid, date:d, freq:f, time:t, note, status:'pending'}));
-  days = days.concat(added); renderList(); document.getElementById('note').value = '';
+  days = days.concat(added); justSent = true; renderList(); document.getElementById('note').value = '';
   toast('Anfrage gesendet ✓');
   const r0 = btn.getBoundingClientRect(); celebrate(r0.left + r0.width / 2, r0.top + r0.height / 2);
   ops++;
