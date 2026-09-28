@@ -157,7 +157,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbzcWLuB2Yz3xUYrJBfcbInX
 const WA = "4917682543276", IG = "Mayuyu_ym";
 const K = new URLSearchParams(location.search).get('k');
 const app = document.getElementById('app');
-let name = '', days = [], freq = 'once', time = 'morning', built = false, ops = 0, view = 'list', calM = new Date(new Date().getFullYear(), new Date().getMonth(), 1), calSel = '', justSent = false;
+let name = '', days = [], freq = 'once', time = 'morning', built = false, ops = 0, view = 'list', calM = new Date(new Date().getFullYear(), new Date().getMonth(), 1), calSel = '', justSent = false, sending = false;
 const openSet = new Set();
 
 const esc = s => String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -337,6 +337,8 @@ function valid(){
   if(!a || !b){ toast('Bitte Datum wählen'); return false; }
   if(b < a){ toast('„Bis“ liegt vor „Von“'); return false; }
   if(nDays(a,b) > 62){ toast('Maximal 62 Tage pro Anfrage'); return false; }
+  const dupe = days.find(d => d.status !== 'rejected' && d.date >= a && d.date <= b);
+  if(dupe){ toast('Für ' + fmt(dupe.date) + ' hast du schon eine Anfrage (' + stTxt(dupe.status) + ').'); return false; }
   return true;
 }
 function notify(kind){
@@ -350,9 +352,11 @@ function notify(kind){
 function eachDay(a, z){ const out = []; let d = new Date(a + 'T00:00:00Z'); const e = new Date(z + 'T00:00:00Z'); while(d <= e){ out.push(d.toISOString().slice(0,10)); d = new Date(d.getTime() + 86400000); } return out; }
 async function send(){
   if(!valid()) return;
+  if(sending) return;
+  const btn = document.getElementById('send');
+  sending = true; btn.disabled = true; btn.style.opacity = '.6';
   const start = document.getElementById('start').value, end = document.getElementById('end').value, note = document.getElementById('note').value.trim();
   const f = freq, t = f === 'twice' ? 'any' : time, sid = 'tmp' + Date.now();
-  const btn = document.getElementById('send'); btn.disabled = true; setTimeout(() => btn.disabled = false, 900);
   const added = eachDay(start, end).map((d, i) => ({id:'tmp' + i + sid, seriesId:sid, date:d, freq:f, time:t, note, status:'pending'}));
   days = days.concat(added); justSent = true; renderList(); document.getElementById('note').value = '';
   toast('Anfrage gesendet ✓');
@@ -362,6 +366,7 @@ async function send(){
     const r = await api({action:'add', k:K, start, end, freq:f, time:t, note});
     if(r.error){ days = days.filter(d => d.seriesId !== sid); renderList(); toast('Fehler: ' + r.error); }
   }catch(e){ days = days.filter(d => d.seriesId !== sid); renderList(); toast('Verbindung fehlgeschlagen – bitte nochmal senden'); }
+  finally{ sending = false; btn.disabled = false; btn.style.opacity = ''; }
   ops--; if(!ops) load();
 }
 load(); setInterval(() => { if(document.visibilityState === 'visible') load(); }, 60000);
