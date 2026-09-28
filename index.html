@@ -1,142 +1,263 @@
 <!DOCTYPE html>
-<html lang="de">
-<head>
-<meta charset="UTF-8">
+<html lang="de"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Katzenbetreuung – Meine Buchungen</title>
-<style>
-  :root{--bg:#faf6f0;--card:#fff;--text:#2b2420;--muted:#8a7f74;--border:#e7ddd0;--accent:#c07a4a;--accent-dark:#a3623a;--accent-soft:#f3e3d4;
-    --pending:#c99a2e;--pending-soft:#faf0d8;--confirmed:#4a7c59;--confirmed-soft:#e3f0e6;--rejected:#b3493f;--rejected-soft:#f8e3e0;}
-  @media (prefers-color-scheme: dark){:root{--bg:#1c1712;--card:#26201a;--text:#f2ece3;--muted:#a89a89;--border:#3a3128;--accent:#e0955f;--accent-dark:#c07a4a;--accent-soft:#3a2c1f;
-    --pending:#e0b84a;--pending-soft:#3a331c;--confirmed:#7fb894;--confirmed-soft:#233a29;--rejected:#e0857a;--rejected-soft:#3a2320;}}
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
-  .wrap{max-width:480px;margin:0 auto;padding:24px 18px 60px}
-  h1{font-size:21px;margin:0 0 4px}
-  .sub{color:var(--muted);font-size:14px;margin:0 0 20px}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:18px}
-  .card h2{font-size:15px;margin:0 0 14px}
-  label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:0 0 5px;text-transform:uppercase;letter-spacing:.03em}
-  .field{margin-bottom:14px}
-  input[type=date],textarea{width:100%;border:1.5px solid var(--border);background:var(--bg);color:var(--text);border-radius:12px;padding:12px;font-size:16px;font-family:inherit}
-  .pills{display:flex;gap:8px}
-  .pill{flex:1;text-align:center;padding:12px 8px;border-radius:12px;border:1.5px solid var(--border);background:var(--bg);font-size:14px;font-weight:600;cursor:pointer;user-select:none}
-  .pill.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-dark)}
-  button.primary{width:100%;padding:14px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-size:16px;font-weight:700;cursor:pointer}
-  button.primary:disabled{opacity:.5}
-  .sec{font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin:8px 0 10px}
-  .b{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px}
-  .b .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
-  .b .d{font-weight:700;font-size:15px}
-  .b .m{font-size:13.5px;margin-top:6px}
-  .b .n{font-size:13px;color:var(--muted);margin-top:4px;font-style:italic}
-  .badge{font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap}
-  .badge.pending{background:var(--pending-soft);color:var(--pending)}
-  .badge.confirmed{background:var(--confirmed-soft);color:var(--confirmed)}
-  .badge.rejected{background:var(--rejected-soft);color:var(--rejected)}
-  .cancel{margin-top:10px;background:none;border:1.5px solid var(--border);color:var(--muted);border-radius:9px;padding:7px 12px;font-size:13px;cursor:pointer}
-  .empty,.err{text-align:center;color:var(--muted);font-size:14px;padding:26px 10px;line-height:1.6}
-  .toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:var(--confirmed);color:#fff;padding:11px 18px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:.25s}
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-</style>
-</head>
-<body>
-<div class="wrap" id="app"><div class="empty">Laden …</div></div>
-<div class="toast" id="toast"></div>
+<meta name="robots" content="noindex"><title>Katzenbetreuung – Meine Anfragen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet"><style>
+:root{color-scheme:light;
+ --bg:#FFF1F7;--card:#FFFFFF;--text:#4A3B5C;--muted:#9A88AD;--border:#FFD3E6;
+ --pink:#FF6FA8;--pink2:#FF9BC7;--pinkSoft:#FFE3F0;--blue:#6EC1FF;--blueSoft:#E1F3FF;
+ --yellow:#E9A800;--yellowSoft:#FFF3C4;--mint:#22B58A;--mintSoft:#D9F7EB;--coral:#F0446E;--coralSoft:#FFE0E8;--lilac:#B48CFF;}
+*{box-sizing:border-box}
+html{background:var(--bg);scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;color:var(--text);font-family:"Quicksand",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-weight:600;
+ padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);-webkit-text-size-adjust:100%}
+.bg{position:fixed;inset:0;z-index:-1;pointer-events:none}
+.wrap{max-width:520px;margin:0 auto;padding:22px 16px 70px}
+.wrap.wide{max-width:680px}
+.head{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+h1{font-size:23px;margin:0;color:var(--pink);font-weight:700}
+.sub{color:var(--muted);font-size:14px;margin:2px 0 18px}
+.card{background:rgba(255,255,255,.96);border:2px solid var(--border);border-radius:22px;padding:18px;margin-bottom:16px;box-shadow:0 8px 24px rgba(255,111,168,.12)}
+.card h2{font-size:16px;margin:0 0 14px;color:var(--text);font-weight:700}
+label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:0 0 6px;text-transform:uppercase;letter-spacing:.04em}
+.field{margin-bottom:14px}.two{display:flex;gap:10px}.two>*{flex:1;min-width:0}
+input[type=date],input[type=text],input[type=password],textarea{width:100%;border:2px solid var(--border);background:#FFFAFD;color:var(--text);border-radius:14px;padding:12px;font-size:16px;font-family:inherit;font-weight:600;outline:none}
+input:focus,textarea:focus{border-color:var(--pink2)}
+.pills{display:flex;gap:8px;flex-wrap:wrap}
+.pill{flex:1 1 0;min-width:88px;text-align:center;padding:11px 8px;border-radius:14px;border:2px solid var(--border);background:#FFFAFD;font-size:14px;font-weight:700;cursor:pointer;user-select:none;transition:.15s}
+.pill.active{background:var(--pinkSoft);border-color:var(--pink);color:var(--pink)}
+.pill.blue.active{background:var(--blueSoft);border-color:var(--blue);color:#2A8FDA}
+button{font-family:inherit;cursor:pointer}
+.primary{width:100%;padding:15px;border:none;border-radius:16px;background:linear-gradient(135deg,var(--pink),var(--lilac));color:#fff;font-size:16px;font-weight:700;box-shadow:0 8px 18px rgba(255,111,168,.35);transition:.15s}
+.primary:active{transform:scale(.98)}.primary:disabled{opacity:.55}
+.info{font-size:13px;color:var(--muted);margin:-4px 0 14px}
+.info b{color:var(--pink)}
+.sec{font-size:13px;font-weight:700;color:var(--pink);text-transform:uppercase;letter-spacing:.05em;margin:22px 4px 10px}
+.chip{display:inline-block;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;margin:0 4px 4px 0}
+.chip.p{background:var(--yellowSoft);color:var(--yellow)}.chip.c{background:var(--mintSoft);color:var(--mint)}.chip.r{background:var(--coralSoft);color:var(--coral)}
+.badge{font-size:12px;font-weight:700;padding:5px 11px;border-radius:999px;white-space:nowrap}
+.badge.pending{background:var(--yellowSoft);color:var(--yellow)}.badge.confirmed{background:var(--mintSoft);color:var(--mint)}
+.badge.rejected{background:var(--coralSoft);color:var(--coral)}.badge.partial{background:var(--blueSoft);color:#2A8FDA}
+.s{background:rgba(255,255,255,.96);border:2px solid var(--border);border-radius:20px;padding:15px 16px;margin-bottom:12px}
+.s .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.s .rng{font-weight:700;font-size:16px}.s .meta{font-size:13.5px;color:var(--muted);margin:4px 0 8px}
+.s .note{font-size:13px;color:var(--muted);font-style:italic;margin-bottom:8px}
+details{margin-top:6px}summary{cursor:pointer;font-size:13px;font-weight:700;color:#2A8FDA;padding:4px 0;list-style:none}
+summary::-webkit-details-marker{display:none}summary::before{content:"▸ "}details[open] summary::before{content:"▾ "}
+.day{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-top:1.5px dashed var(--border);font-size:14px}
+.mini{display:flex;gap:6px;align-items:center}
+.mini button{padding:6px 10px;border-radius:10px;border:2px solid var(--border);background:#fff;font-size:12.5px;font-weight:700;color:var(--muted)}
+.mini .ok{border-color:var(--mint);color:var(--mint);background:var(--mintSoft)}.mini .no{border-color:var(--coral);color:var(--coral);background:var(--coralSoft)}
+.ghost{margin-top:6px;background:#fff;border:2px solid var(--border);color:var(--muted);border-radius:12px;padding:8px 13px;font-size:13px;font-weight:700}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 2px}
+.acts button{flex:1 1 auto;padding:10px 12px;border-radius:12px;border:2px solid var(--border);background:#fff;color:var(--text);font-size:13.5px;font-weight:700}
+.acts .ok{background:var(--mintSoft);border-color:var(--mint);color:var(--mint)}.acts .no{background:var(--coralSoft);border-color:var(--coral);color:var(--coral)}
+.acts .del{flex:0 0 auto;color:var(--muted)}
+.empty,.err{text-align:center;color:var(--muted);font-size:14px;padding:26px 10px;line-height:1.6}
+.toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--mint);color:#fff;padding:12px 20px;border-radius:999px;font-size:14px;font-weight:700;opacity:0;pointer-events:none;transition:.25s;max-width:90vw;text-align:center;z-index:9}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+ 
+.notify{background:var(--blueSoft);border-radius:18px;padding:12px 14px;margin:2px 0 14px}
+.notify .t{font-size:13px;color:#2A8FDA;font-weight:700;margin-bottom:8px}
+.notify .h{font-size:12px;color:var(--muted);margin-top:8px;font-weight:600}
+.nrow{display:flex;gap:8px}
+.nb{flex:1;padding:11px 8px;border-radius:14px;border:none;font-size:14px;font-weight:700;color:#fff}
+.nb.wa{background:#25D366;color:#0B3D21}.nb.ig{background:linear-gradient(135deg,#F58529,#DD2A7B,#8134AF);}
+</style></head>
+<body><svg class="bg" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+<defs><pattern id="cats" width="340" height="340" patternUnits="userSpaceOnUse"><g opacity=".6">
+<g transform="translate(62,64) scale(1)">
+<path d="M-34 -6 L-30 -42 L-8 -27 Z" fill="#FFB3D1"/><path d="M34 -6 L30 -42 L8 -27 Z" fill="#FFB3D1"/>
+<ellipse rx="37" ry="30" fill="#FFB3D1"/>
+<circle cx="-13" cy="-3" r="3.2" fill="#6B5A80"/><circle cx="13" cy="-3" r="3.2" fill="#6B5A80"/>
+<path d="M-3 5 L3 5 L0 9 Z" fill="#FF6FA8"/>
+<path d="M0 9 Q-4 14 -8 11 M0 9 Q4 14 8 11" stroke="#6B5A80" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+<path d="M-24 7 L-42 3 M-24 12 L-42 15 M24 7 L42 3 M24 12 L42 15" stroke="#6B5A80" stroke-width="1.3" stroke-linecap="round"/>
+<circle cx="-23" cy="6" r="4" fill="#FF8FBE" opacity=".55"/><circle cx="23" cy="6" r="4" fill="#FF8FBE" opacity=".55"/></g>
+<g transform="translate(246,112)">
+<path d="M26 44 C58 46 62 12 46 0" stroke="#A8DAFF" stroke-width="10" fill="none" stroke-linecap="round"/>
+<ellipse cx="0" cy="24" rx="27" ry="33" fill="#A8DAFF"/><circle cx="0" cy="-18" r="21" fill="#A8DAFF"/>
+<path d="M-19 -28 L-17 -52 L-3 -36 Z" fill="#A8DAFF"/><path d="M19 -28 L17 -52 L3 -36 Z" fill="#A8DAFF"/>
+<circle cx="-7" cy="-18" r="2.6" fill="#6B5A80"/><circle cx="7" cy="-18" r="2.6" fill="#6B5A80"/>
+<path d="M-2 -11 L2 -11 L0 -8 Z" fill="#FF6FA8"/>
+<ellipse cx="0" cy="40" rx="14" ry="18" fill="#D6EEFF"/></g>
+<g transform="translate(100,266)">
+<path d="M40 8 C66 8 68 -20 52 -26" stroke="#FFE49A" stroke-width="10" fill="none" stroke-linecap="round"/>
+<ellipse cx="4" cy="4" rx="44" ry="24" fill="#FFE49A"/><circle cx="-32" cy="-12" r="18" fill="#FFE49A"/>
+<path d="M-48 -22 L-46 -44 L-33 -30 Z" fill="#FFE49A"/><path d="M-16 -22 L-18 -44 L-31 -30 Z" fill="#FFE49A"/>
+<path d="M-40 -13 Q-37 -9 -34 -13 M-30 -13 Q-27 -9 -24 -13" stroke="#6B5A80" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+<path d="M-34 -6 L-30 -6 L-32 -3 Z" fill="#FF6FA8"/></g>
+<g transform="translate(282,286) scale(0.78)">
+<path d="M-34 -6 L-30 -42 L-8 -27 Z" fill="#D9C2FF"/><path d="M34 -6 L30 -42 L8 -27 Z" fill="#D9C2FF"/>
+<ellipse rx="37" ry="30" fill="#D9C2FF"/>
+<circle cx="-13" cy="-3" r="3.2" fill="#6B5A80"/><circle cx="13" cy="-3" r="3.2" fill="#6B5A80"/>
+<path d="M-3 5 L3 5 L0 9 Z" fill="#FF6FA8"/>
+<path d="M0 9 Q-4 14 -8 11 M0 9 Q4 14 8 11" stroke="#6B5A80" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+<path d="M-24 7 L-42 3 M-24 12 L-42 15 M24 7 L42 3 M24 12 L42 15" stroke="#6B5A80" stroke-width="1.3" stroke-linecap="round"/>
+<circle cx="-23" cy="6" r="4" fill="#FF8FBE" opacity=".55"/><circle cx="23" cy="6" r="4" fill="#FF8FBE" opacity=".55"/></g>
+<path transform="translate(170,34) scale(0.7)" d="M0 0 C-6 -8 -18 -2 0 14 C18 -2 6 -8 0 0Z" fill="#FF9EC7"/><path transform="translate(176,206) scale(0.6)" d="M0 0 C-6 -8 -18 -2 0 14 C18 -2 6 -8 0 0Z" fill="#9AD4FF"/><path transform="translate(326,196) scale(0.5)" d="M0 0 C-6 -8 -18 -2 0 14 C18 -2 6 -8 0 0Z" fill="#FFC94D"/>
+<path transform="translate(20,168) scale(0.5)" d="M0 0 C-6 -8 -18 -2 0 14 C18 -2 6 -8 0 0Z" fill="#FFC94D"/><path transform="translate(214,300) scale(0.55)" d="M0 0 C-6 -8 -18 -2 0 14 C18 -2 6 -8 0 0Z" fill="#FF9EC7"/>
+<circle cx="150" cy="120" r="4" fill="#B5F0D8"/><circle cx="20" cy="300" r="4" fill="#9AD4FF"/><circle cx="322" cy="34" r="4" fill="#FFB3D1"/><circle cx="118" cy="176" r="3" fill="#FFE49A"/>
+</g></pattern></defs><rect width="100%" height="100%" fill="url(#cats)"/></svg>
+<div class="wrap" id="app"><div class="empty">Laden …</div></div><div class="toast" id="toast"></div>
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbzcWLuB2Yz3xUYrJBfcbInXtJDDFjT-JjB6gk9QvvVLx3PCiwsvHFTt3brVtpcV4o4PWw/exec";
-
+const WA = "4917682543276", IG = "Mayuyu_ym";
 const K = new URLSearchParams(location.search).get('k');
 const app = document.getElementById('app');
-let name = '', bookings = [], freq = 'once', time = 'morning', formBuilt = false;
+let name = '', days = [], freq = 'once', time = 'morning', built = false;
+const openSet = new Set();
 
 const esc = s => String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const pad = n => String(n).padStart(2,'0');
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
-const human = iso => new Date(iso + 'T00:00:00').toLocaleDateString('de-DE', {weekday:'short', day:'2-digit', month:'long', year:'numeric'});
-const freqTxt = b => b.freq === 'twice' ? '2× am Tag (vormittags & abends)' : (b.time === 'evening' ? '1× abends' : '1× vormittags');
-const statusTxt = s => s === 'confirmed' ? 'Bestätigt' : s === 'rejected' ? 'Abgelehnt' : 'Offen';
+const fmt = iso => new Date(iso + 'T00:00:00').toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit', year:'numeric'});
+const wd = iso => new Date(iso + 'T00:00:00').toLocaleDateString('de-DE', {weekday:'short', day:'2-digit', month:'2-digit'});
+const rng = (a,b) => a === b ? fmt(a) : fmt(a) + ' – ' + fmt(b);
+const timeTxt = t => t === 'morning' ? 'vormittags' : t === 'evening' ? 'abends' : 'egal (flexibel)';
+const freqTxt = (f,t) => f === 'twice' ? '2× am Tag (vormittags & abends)' : '1× am Tag, ' + timeTxt(t);
+const stTxt = s => s === 'confirmed' ? 'Bestätigt' : s === 'rejected' ? 'Abgelehnt' : 'Offen';
+const nDays = (a,b) => Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00')) / 86400000) + 1;
+function toast(t){ const el = document.getElementById('toast'); el.textContent = t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'), 2600); }
+async function api(p){ const r = await fetch(API_URL + '?' + new URLSearchParams(p)); return r.json(); }
 
-function toast(t){ const el = document.getElementById('toast'); el.textContent = t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'), 2500); }
-
-async function api(params){
-  const r = await fetch(API_URL + '?' + new URLSearchParams(params));
-  return r.json();
+function group(list){
+  const m = {};
+  list.forEach(b => { const k = b.seriesId || b.id; (m[k] = m[k] || {sid:k, days:[]}).days.push(b); });
+  return Object.values(m).map(s => {
+    s.days.sort((a,b) => a.date.localeCompare(b.date));
+    const f = s.days[0];
+    s.start = f.date; s.end = s.days[s.days.length-1].date; s.freq = f.freq; s.time = f.time; s.note = f.note;
+    s.c = {pending:0, confirmed:0, rejected:0};
+    s.days.forEach(d => { if(s.c[d.status] !== undefined) s.c[d.status]++; });
+    return s;
+  }).sort((a,b) => b.start.localeCompare(a.start));
 }
 
 async function load(){
-  if(!K){ app.innerHTML = '<div class="err">Bitte öffne den persönlichen Link, den du von Yimei bekommen hast.</div>'; return; }
+  if(!K){ app.innerHTML = '<div class="err">Bitte öffne den persönlichen Link, den du von Yimei bekommen hast. 🐱</div>'; return; }
   try{
     const r = await api({action:'list', k:K});
     if(r.error){ app.innerHTML = '<div class="err">Dieser Link ist ungültig. Bitte frag Yimei nach einem neuen Link.</div>'; return; }
-    name = r.name; bookings = r.bookings;
-    render();
-  }catch(e){
-    if(!formBuilt) app.innerHTML = '<div class="err">Verbindung fehlgeschlagen. Bitte Seite neu laden.</div>';
-  }
+    name = r.name; days = r.bookings; render();
+  }catch(e){ if(!built) app.innerHTML = '<div class="err">Verbindung fehlgeschlagen. Bitte Seite neu laden.</div>'; }
 }
 
 function render(){
-  if(!formBuilt){
+  if(!built){
     app.innerHTML = `
-      <h1>🐱 Hallo ${esc(name)}!</h1>
-      <p class="sub">Hier kannst du Katzenbetreuung bei Yimei anfragen und den Status sehen.</p>
+      <div class="head"><svg viewBox="-46 -46 92 82" width="46" height="42" aria-hidden="true"><g transform="translate(0,0) scale(1)">
+<path d="M-34 -6 L-30 -42 L-8 -27 Z" fill="#FFB3D1"/><path d="M34 -6 L30 -42 L8 -27 Z" fill="#FFB3D1"/>
+<ellipse rx="37" ry="30" fill="#FFB3D1"/>
+<circle cx="-13" cy="-3" r="3.2" fill="#6B5A80"/><circle cx="13" cy="-3" r="3.2" fill="#6B5A80"/>
+<path d="M-3 5 L3 5 L0 9 Z" fill="#FF6FA8"/>
+<path d="M0 9 Q-4 14 -8 11 M0 9 Q4 14 8 11" stroke="#6B5A80" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+<path d="M-24 7 L-42 3 M-24 12 L-42 15 M24 7 L42 3 M24 12 L42 15" stroke="#6B5A80" stroke-width="1.3" stroke-linecap="round"/>
+<circle cx="-23" cy="6" r="4" fill="#FF8FBE" opacity=".55"/><circle cx="23" cy="6" r="4" fill="#FF8FBE" opacity=".55"/></g></svg><h1>Hallo ${esc(name)}!</h1></div>
+      <p class="sub">Frag hier Katzenbetreuung bei Yimei an – für einen Tag oder eine ganze Serie.</p>
       <div class="card">
-        <h2>Neue Anfrage</h2>
-        <div class="field"><label>Datum</label><input type="date" id="date" min="${today()}" value="${today()}"></div>
-        <div class="field"><label>Häufigkeit</label>
+        <h2>Neue Anfrage / Serientermin</h2>
+        <div class="two">
+          <div class="field"><label>Von</label><input type="date" id="start" min="${today()}" value="${today()}"></div>
+          <div class="field"><label>Bis</label><input type="date" id="end" min="${today()}" value="${today()}"></div>
+        </div>
+        <div class="info" id="info"></div>
+        <div class="field"><label>Häufigkeit pro Tag</label>
           <div class="pills" id="freq"><div class="pill active" data-v="once">1× am Tag</div><div class="pill" data-v="twice">2× am Tag</div></div></div>
-        <div class="field" id="timeF"><label>Uhrzeit (ungefähr)</label>
-          <div class="pills" id="time"><div class="pill active" data-v="morning">Vormittags</div><div class="pill" data-v="evening">Abends</div></div></div>
+        <div class="field" id="timeF"><label>Uhrzeit</label>
+          <div class="pills" id="time"><div class="pill blue active" data-v="morning">Vormittags</div><div class="pill blue" data-v="evening">Abends</div><div class="pill blue" data-v="any">Egal</div></div></div>
         <div class="field"><label>Notiz (optional)</label><textarea id="note" rows="2" placeholder="z. B. Schlüssel, Besonderheiten …"></textarea></div>
+        <div class="notify">
+          <div class="t">💌 Optional: Yimei zusätzlich per Nachricht informieren</div>
+          <div class="nrow"><button class="nb wa" id="waBtn">WhatsApp</button><button class="nb ig" id="igBtn">Instagram</button></div>
+          <div class="h">Unabhängig von „Anfrage senden“ – deine Anfrage wird auch ohne Nachricht gespeichert.</div>
+        </div>
         <button class="primary" id="send">Anfrage senden</button>
       </div>
-      <div class="sec">Meine Anfragen</div>
-      <div id="list"></div>`;
-    formBuilt = true;
+      <div class="sec">Meine Anfragen</div><div id="list"></div>`;
+    built = true;
+    const start = document.getElementById('start'), end = document.getElementById('end');
+    start.onchange = () => { if(end.value < start.value) end.value = start.value; end.min = start.value; info(); };
+    end.onchange = info;
     document.getElementById('freq').onclick = e => { const p = e.target.closest('.pill'); if(!p) return; freq = p.dataset.v;
-      [...p.parentNode.children].forEach(x=>x.classList.toggle('active', x===p)); document.getElementById('timeF').style.display = freq==='twice' ? 'none' : ''; };
+      [...p.parentNode.children].forEach(x => x.classList.toggle('active', x === p));
+      document.getElementById('timeF').style.display = freq === 'twice' ? 'none' : ''; };
     document.getElementById('time').onclick = e => { const p = e.target.closest('.pill'); if(!p) return; time = p.dataset.v;
-      [...p.parentNode.children].forEach(x=>x.classList.toggle('active', x===p)); };
+      [...p.parentNode.children].forEach(x => x.classList.toggle('active', x === p)); };
     document.getElementById('send').onclick = send;
+    document.getElementById('waBtn').onclick = () => notify('wa');
+    document.getElementById('igBtn').onclick = () => notify('ig');
+    document.getElementById('list').addEventListener('toggle', e => {
+      const d = e.target; if(!d.dataset || !d.dataset.sid) return; d.open ? openSet.add(d.dataset.sid) : openSet.delete(d.dataset.sid); }, true);
+    document.getElementById('list').onclick = async e => {
+      const b = e.target.closest('[data-cancel]'); if(!b) return;
+      if(!confirm('Offene Tage dieser Anfrage wirklich zurückziehen?')) return;
+      b.disabled = true;
+      const r = await api({action:'cancel', k:K, sid:b.dataset.cancel});
+      toast(r.error ? 'Fehler: ' + r.error : 'Zurückgezogen'); load();
+    };
+    info();
   }
   renderList();
 }
 
-function renderList(){
-  const list = document.getElementById('list');
-  if(!bookings.length){ list.innerHTML = '<div class="empty">Noch keine Anfragen.</div>'; return; }
-  const sorted = bookings.slice().sort((a,b)=> b.date.localeCompare(a.date));
-  list.innerHTML = sorted.map(b => `
-    <div class="b">
-      <div class="top"><div class="d">${human(b.date)}</div><div class="badge ${b.status}">${statusTxt(b.status)}</div></div>
-      <div class="m">${freqTxt(b)}</div>
-      ${b.note ? `<div class="n">📝 ${esc(b.note)}</div>` : ''}
-      ${b.status === 'pending' ? `<button class="cancel" data-id="${b.id}">Anfrage zurückziehen</button>` : ''}
-    </div>`).join('');
-  list.querySelectorAll('.cancel').forEach(btn => btn.onclick = async () => {
-    if(!confirm('Anfrage wirklich zurückziehen?')) return;
-    btn.disabled = true;
-    const r = await api({action:'cancel', k:K, id:btn.dataset.id});
-    if(r.error) toast('Fehler: ' + r.error); else toast('Zurückgezogen');
-    load();
-  });
+function info(){
+  const a = document.getElementById('start').value, b = document.getElementById('end').value, el = document.getElementById('info');
+  if(!a || !b || b < a){ el.textContent = ''; return; }
+  const n = nDays(a,b);
+  el.innerHTML = n === 1 ? '📅 <b>1 Tag</b>' : `📅 <b>${n} Tage</b> (${rng(a,b)})` + (n > 62 ? ' – maximal 62 Tage' : '');
 }
 
+function renderList(){
+  const list = document.getElementById('list'), series = group(days);
+  if(!series.length){ list.innerHTML = '<div class="empty">Noch keine Anfragen. 🐾</div>'; return; }
+  list.innerHTML = series.map(s => {
+    const n = s.days.length, c = s.c;
+    const [cls, txt] = c.pending === n ? ['pending','Offen'] : c.confirmed === n ? ['confirmed','Bestätigt'] : c.rejected === n ? ['rejected','Abgelehnt'] : ['partial','Teilweise'];
+    return `<div class="s">
+      <div class="top"><div class="rng">${rng(s.start, s.end)}</div><div class="badge ${cls}">${txt}</div></div>
+      <div class="meta">${n} ${n === 1 ? 'Tag' : 'Tage'} · ${freqTxt(s.freq, s.time)}</div>
+      ${s.note ? `<div class="note">📝 ${esc(s.note)}</div>` : ''}
+      <div>${c.confirmed ? `<span class="chip c">✓ ${c.confirmed} bestätigt</span>` : ''}${c.rejected ? `<span class="chip r">✕ ${c.rejected} abgelehnt</span>` : ''}${c.pending ? `<span class="chip p">⏳ ${c.pending} offen</span>` : ''}</div>
+      ${n > 1 ? `<details data-sid="${s.sid}" ${openSet.has(s.sid) ? 'open' : ''}><summary>Tage anzeigen</summary>
+        ${s.days.map(d => `<div class="day"><span>${wd(d.date)}</span><span class="badge ${d.status}">${stTxt(d.status)}</span></div>`).join('')}</details>` : ''}
+      ${c.pending ? `<button class="ghost" data-cancel="${s.sid}">Offene Tage zurückziehen</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function msg(){
+  const a = document.getElementById('start').value, b = document.getElementById('end').value, note = document.getElementById('note').value.trim();
+  return `Hallo Yimei, ich habe eine Anfrage gesendet 🐱
+Name: ${name}
+Zeitraum: ${rng(a,b)} (${nDays(a,b)} ${nDays(a,b) === 1 ? 'Tag' : 'Tage'})
+Häufigkeit: ${freqTxt(freq, time)}` + (note ? `
+Notiz: ${note}` : '');
+}
+function valid(){
+  const a = document.getElementById('start').value, b = document.getElementById('end').value;
+  if(!a || !b){ toast('Bitte Datum wählen'); return false; }
+  if(b < a){ toast('„Bis“ liegt vor „Von“'); return false; }
+  if(nDays(a,b) > 62){ toast('Maximal 62 Tage pro Anfrage'); return false; }
+  return true;
+}
+function notify(kind){
+  if(!valid()) return;
+  const text = msg();
+  if(kind === 'wa'){ window.open('https://wa.me/' + WA + '?text=' + encodeURIComponent(text), '_blank'); return; }
+  if(navigator.clipboard) navigator.clipboard.writeText(text).catch(()=>{});
+  toast('Text kopiert – im Instagram-Chat einfügen & senden');
+  window.open('https://ig.me/m/' + IG, '_blank');
+}
 async function send(){
-  const date = document.getElementById('date').value;
-  if(!date){ toast('Bitte Datum wählen'); return; }
+  if(!valid()) return;
   const btn = document.getElementById('send'); btn.disabled = true; btn.textContent = 'Senden …';
   try{
-    const r = await api({action:'add', k:K, date, freq, time, note: document.getElementById('note').value.trim()});
+    const r = await api({action:'add', k:K, start:document.getElementById('start').value, end:document.getElementById('end').value,
+      freq, time, note:document.getElementById('note').value.trim()});
     if(r.error) toast('Fehler: ' + r.error); else { toast('Anfrage gesendet ✓'); document.getElementById('note').value = ''; }
   }catch(e){ toast('Verbindung fehlgeschlagen'); }
-  btn.disabled = false; btn.textContent = 'Anfrage senden';
-  load();
+  btn.disabled = false; btn.textContent = 'Anfrage senden'; load();
 }
-
-load();
-setInterval(load, 30000);
-</script>
-</body>
-</html>
+load(); setInterval(load, 30000);
+</script></body></html>
