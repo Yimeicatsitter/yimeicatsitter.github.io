@@ -2,7 +2,7 @@
 <html lang="de"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex"><title>Katzenbetreuung – Meine Anfragen</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet"><style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'"><style>
 :root{color-scheme:light;
  --bg:#FFF1F7;--card:#FFFFFF;--text:#4A3B5C;--muted:#9A88AD;--border:#FFD3E6;
  --pink:#FF6FA8;--pink2:#FF9BC7;--pinkSoft:#FFE3F0;--blue:#6EC1FF;--blueSoft:#E1F3FF;
@@ -136,10 +136,12 @@ function group(list){
 
 async function load(){
   if(!K){ app.innerHTML = '<div class="err">Bitte öffne den persönlichen Link, den du von Yimei bekommen hast. 🐱</div>'; return; }
+  if(!built){ try{ const c = JSON.parse(localStorage.getItem('c_' + K) || 'null'); if(c){ name = c.name; days = c.bookings; render(); } }catch(e){} }
   try{
     const r = await api({action:'list', k:K});
-    if(r.error){ app.innerHTML = '<div class="err">Dieser Link ist ungültig. Bitte frag Yimei nach einem neuen Link.</div>'; return; }
-    name = r.name; days = r.bookings; render();
+    if(r.error){ localStorage.removeItem('c_' + K); built = false; app.innerHTML = '<div class="err">Dieser Link ist ungültig. Bitte frag Yimei nach einem neuen Link.</div>'; return; }
+    name = r.name; days = r.bookings; try{ localStorage.setItem('c_' + K, JSON.stringify(r)); }catch(e){}
+    render();
   }catch(e){ if(!built) app.innerHTML = '<div class="err">Verbindung fehlgeschlagen. Bitte Seite neu laden.</div>'; }
 }
 
@@ -259,5 +261,6 @@ async function send(){
   }catch(e){ toast('Verbindung fehlgeschlagen'); }
   btn.disabled = false; btn.textContent = 'Anfrage senden'; load();
 }
-load(); setInterval(load, 30000);
+load(); setInterval(() => { if(document.visibilityState === 'visible') load(); }, 60000);
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible' && built) load(); });
 </script></body></html>
