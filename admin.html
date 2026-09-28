@@ -120,6 +120,10 @@ html[data-theme="winter"] .primary{background:linear-gradient(135deg,#5FA8C4,#B8
  border:1.5px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;
  opacity:.8;box-shadow:0 3px 8px rgba(0,0,0,.1);padding:0}
 .seasonBtn:active{transform:scale(.9)}
+.langBtn{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:10px;z-index:6;width:32px;height:32px;border-radius:50%;
+ border:1.5px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;
+ opacity:.8;box-shadow:0 3px 8px rgba(0,0,0,.1);padding:0}
+.langBtn:active{transform:scale(.9)}
 .seasonPreviewRow{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 14px}
 .seasonMini{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:14px;cursor:pointer;
  display:flex;align-items:center;justify-content:center;opacity:.75;padding:0}
@@ -264,6 +268,8 @@ function group(list){
     s.c = {pending:0, confirmed:0, rejected:0};
     s.days.forEach(d => { if(s.c[d.status] !== undefined) s.c[d.status]++; });
     s.cancelReq = s.days.filter(d => d.cancelRequested === '1' && d.status === 'confirmed').length;
+    s.paidCount = s.days.filter(d => d.status === 'confirmed' && d.paid === '1').length;
+    s.paidAll = s.c.confirmed > 0 && s.paidCount === s.c.confirmed;
     return s;
   }).sort((a,b) => a.start.localeCompare(b.start));
 }
@@ -352,12 +358,15 @@ function render(){
       const n = s.days.length, c = s.c;
       return `<div class="s ${c.pending ? 'sp' : (c.rejected === n ? 'sr' : 'sc')}">
         <div class="top"><div><div class="rng"><span class="av">${av(s.name)}</span>${esc(s.name)}</div><div class="meta" style="margin:2px 0 0">${rng(s.start, s.end)}</div></div>
-          <div>${c.pending ? `<span class="chip p">⏳ ${c.pending}</span>` : ''}${c.confirmed ? `<span class="chip c">✓ ${c.confirmed}</span>` : ''}${c.rejected ? `<span class="chip r">✕ ${c.rejected}</span>` : ''}${s.cancelReq ? `<span class="chip r">⚠️ ${s.cancelReq} 申请取消</span>` : ''}</div></div>
+          <div>${c.pending ? `<span class="chip p">⏳ ${c.pending}</span>` : ''}${c.confirmed ? `<span class="chip c">✓ ${c.confirmed}</span>` : ''}${c.rejected ? `<span class="chip r">✕ ${c.rejected}</span>` : ''}${s.cancelReq ? `<span class="chip r">⚠️ ${s.cancelReq} 申请取消</span>` : ''}${s.paidAll ? `<span class="chip c">💰 已付款</span>` : ''}</div></div>
         <div class="meta">共 ${n} 天 · ${freqTxt(s.freq, s.time)}</div>
         ${s.note ? `<div class="note">📝 ${esc(s.note)}</div>` : ''}
         ${s.cancelReq ? `<div class="acts">
           <button class="ok" data-a="cancelApprove" data-sid="${s.sid}">✅ 同意取消(${s.cancelReq}天)</button>
           <button class="no" data-a="cancelDeny" data-sid="${s.sid}">↩️ 驳回取消申请</button>
+        </div>` : ''}
+        ${c.confirmed > 0 ? `<div class="acts">
+          <button class="${s.paidAll ? 'ok' : 'no'}" data-a="setPaid" data-sid="${s.sid}" data-paid="${s.paidAll ? '' : '1'}">${s.paidAll ? '💰 已付款' : '💰 标记为已付款'}</button>
         </div>` : ''}
         <div class="acts">
           <button class="ok" data-a="series" data-sid="${s.sid}" data-s="confirmed">🐾 整个系列接受</button>
@@ -449,6 +458,12 @@ app.addEventListener('click', async e => {
     const olds = data.bookings.filter(x => (x.seriesId || x.id) === sid && x.cancelRequested === '1').map(x => [x, x.cancelRequested]);
     olds.forEach(([x]) => x.cancelRequested = ''); render(); toast('已驳回取消申请');
     await run(() => api({action:'adminDenyCancel', sid}), () => olds.forEach(([x, o]) => x.cancelRequested = o));
+  }
+  else if(a === 'setPaid'){
+    const sid = b.dataset.sid, paid = b.dataset.paid;
+    const olds = data.bookings.filter(x => (x.seriesId || x.id) === sid && x.status === 'confirmed').map(x => [x, x.paid]);
+    olds.forEach(([x]) => x.paid = paid); render(); toast(paid === '1' ? '已标记为已付款 💰' : '已标记为未付款');
+    await run(() => api({action:'adminSetPaid', sid, paid}), () => olds.forEach(([x, o]) => x.paid = o));
   }
 });
 
