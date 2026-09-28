@@ -57,6 +57,24 @@ summary::-webkit-details-marker{display:none}summary::before{content:"▸ "}deta
 .toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:#1F2A44;color:#fff;padding:13px 22px;border-radius:999px;font-size:15.5px;font-weight:800;opacity:0;pointer-events:none;transition:.22s;max-width:90vw;text-align:center;z-index:9;box-shadow:0 8px 20px rgba(0,0,0,.25)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
  
+.calhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.calhead h2{margin:0;font-size:19px;font-weight:800}
+.navb{padding:9px 15px;border-radius:12px;border:2.5px solid var(--border);background:#fff;font-weight:800;font-size:16px;color:var(--text)}
+.navb.today{background:var(--blue);border-color:var(--blue);color:#fff;font-size:14.5px}
+.cgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cw{text-align:center;font-size:13.5px;font-weight:800;color:var(--muted);padding:4px 0}
+.cd{min-height:66px;background:#fff;border:2px solid var(--line);border-radius:12px;padding:4px;overflow:hidden;cursor:pointer}
+.cd.off{background:transparent;border-color:transparent;cursor:default}
+.cd.today{border-color:var(--pink);border-width:2.5px}.cd.sel{background:var(--pinkSoft);border-color:var(--pink)}
+.dn{font-size:14px;font-weight:800;margin-bottom:3px}.cd.today .dn{color:var(--pink)}
+.cc{display:block;font-size:11px;font-weight:800;padding:1px 5px;border-radius:6px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc.pending{background:var(--yellowSoft);color:var(--yellow)}.cc.confirmed{background:#0E9A70;color:#fff}.cc.rejected{background:var(--coralSoft);color:var(--coral);text-decoration:line-through}
+.cm{font-size:11.5px;color:var(--muted);font-weight:800}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:14px;font-weight:700;color:var(--muted);margin:12px 2px 14px}
+.legend i{display:inline-block;width:13px;height:13px;border-radius:4px;margin-right:6px;vertical-align:-2px}
+.dtitle{font-size:17px;font-weight:800;margin:0 0 6px}
+.viewsw{margin-bottom:12px}.viewsw .pill{min-width:0}
+@media (max-width:480px){.cd{min-height:58px;padding:3px}.cc{font-size:10px;padding:1px 3px}}
 .notify{background:var(--blueSoft);border-radius:18px;padding:12px 14px;margin:2px 0 14px}
 .notify .t{font-size:15px;color:var(--blueText);font-weight:800;margin-bottom:8px}
 .notify .h{font-size:13.5px;color:var(--muted);margin-top:8px;font-weight:600}
@@ -105,7 +123,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbzcWLuB2Yz3xUYrJBfcbInX
 const WA = "4917682543276", IG = "Mayuyu_ym";
 const K = new URLSearchParams(location.search).get('k');
 const app = document.getElementById('app');
-let name = '', days = [], freq = 'once', time = 'morning', built = false, ops = 0;
+let name = '', days = [], freq = 'once', time = 'morning', built = false, ops = 0, view = 'list', calM = new Date(new Date().getFullYear(), new Date().getMonth(), 1), calSel = '';
 const openSet = new Set();
 
 const esc = s => String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -177,7 +195,9 @@ function render(){
         </div>
         <button class="primary" id="send">Anfrage senden</button>
       </div>
-      <div class="sec">Meine Anfragen</div><div id="list"></div>`;
+      <div class="sec">Meine Anfragen</div>
+      <div class="pills viewsw" id="view"><div class="pill active" data-v="list">Liste</div><div class="pill" data-v="cal">📅 Kalender</div></div>
+      <div id="list"></div>`;
     built = true;
     const start = document.getElementById('start'), end = document.getElementById('end');
     start.onchange = () => { if(end.value < start.value) end.value = start.value; end.min = start.value; info(); };
@@ -188,11 +208,19 @@ function render(){
     document.getElementById('time').onclick = e => { const p = e.target.closest('.pill'); if(!p) return; time = p.dataset.v;
       [...p.parentNode.children].forEach(x => x.classList.toggle('active', x === p)); };
     document.getElementById('send').onclick = send;
+    document.getElementById('view').onclick = e => { const p = e.target.closest('.pill'); if(!p) return; view = p.dataset.v;
+      [...p.parentNode.children].forEach(x => x.classList.toggle('active', x === p)); renderList(); };
     document.getElementById('waBtn').onclick = () => notify('wa');
     document.getElementById('igBtn').onclick = () => notify('ig');
     document.getElementById('list').addEventListener('toggle', e => {
       const d = e.target; if(!d.dataset || !d.dataset.sid) return; d.open ? openSet.add(d.dataset.sid) : openSet.delete(d.dataset.sid); }, true);
     document.getElementById('list').onclick = async e => {
+      const nv = e.target.closest('[data-nav]');
+      if(nv){ const dd = +nv.dataset.nav; calM = dd === 0 ? new Date(new Date().getFullYear(), new Date().getMonth(), 1) : new Date(calM.getFullYear(), calM.getMonth() + dd, 1); if(dd === 0) calSel = today(); renderList(); return; }
+      const cd = e.target.closest('[data-day]'); if(cd){ calSel = cd.dataset.day; renderList(); return; }
+      const pf = e.target.closest('[data-prefill]');
+      if(pf){ const s = document.getElementById('start'), en = document.getElementById('end'); s.value = pf.dataset.prefill; en.min = s.value; en.value = s.value; info();
+        s.scrollIntoView({behavior:'smooth', block:'center'}); toast('Datum übernommen ✓'); return; }
       const b = e.target.closest('[data-cancel]'); if(!b) return;
       if(!confirm('Offene Tage dieser Anfrage wirklich zurückziehen?')) return;
       const sid = b.dataset.cancel, backup = days;
@@ -215,8 +243,37 @@ function info(){
   el.innerHTML = n === 1 ? '📅 <b>1 Tag</b>' : `📅 <b>${n} Tage</b> (${rng(a,b)})` + (n > 62 ? ' – maximal 62 Tage' : '');
 }
 
+const p2 = n => String(n).padStart(2, '0');
+const cshort = x => x.freq === 'twice' ? '2×' : x.time === 'morning' ? 'Vorm.' : x.time === 'evening' ? 'Abends' : 'Egal';
+function calHTML(){
+  if(!calSel) calSel = today();
+  const y = calM.getFullYear(), m = calM.getMonth(), by = {}, order = {pending:0, confirmed:1, rejected:2};
+  days.forEach(x => { (by[x.date] = by[x.date] || []).push(x); });
+  const lead = (new Date(y, m, 1).getDay() + 6) % 7, dim = new Date(y, m + 1, 0).getDate(), cells = [];
+  for(let i = 0; i < lead; i++) cells.push(null);
+  for(let d = 1; d <= dim; d++) cells.push(d);
+  while(cells.length % 7) cells.push(null);
+  let grid = ['Mo','Di','Mi','Do','Fr','Sa','So'].map(w => `<div class="cw">${w}</div>`).join('');
+  cells.forEach(d => {
+    if(d === null){ grid += '<div class="cd off"></div>'; return; }
+    const key = y + '-' + p2(m + 1) + '-' + p2(d), l = (by[key] || []).slice().sort((a, c) => order[a.status] - order[c.status]);
+    grid += `<div class="cd ${key === today() ? 'today' : ''} ${key === calSel ? 'sel' : ''}" data-day="${key}"><div class="dn">${d}</div>` +
+      l.slice(0, 2).map(x => `<span class="cc ${x.status}">${cshort(x)}</span>`).join('') + (l.length > 2 ? `<span class="cm">+${l.length - 2}</span>` : '') + '</div>';
+  });
+  const sel = (by[calSel] || []).slice().sort((a, c) => order[a.status] - order[c.status]);
+  const detail = `<div class="card" style="margin-top:14px"><div class="dtitle">${wd(calSel)} · ${sel.length ? sel.length + (sel.length === 1 ? ' Eintrag' : ' Einträge') : 'keine Einträge'}</div>` +
+    sel.map(x => `<div class="day"><span>${freqTxt(x.freq, x.time)}${x.note ? `<div class="meta" style="margin:3px 0 0">📝 ${esc(x.note)}</div>` : ''}</span><span class="badge ${x.status}">${stTxt(x.status)}</span></div>`).join('') +
+    (calSel >= today() ? `<button class="ghost" data-prefill="${calSel}" style="margin-top:10px">➕ Für diesen Tag anfragen</button>` : '') + '</div>';
+  return `<div class="calhead"><button class="navb" data-nav="-1">◀</button><h2>${calM.toLocaleDateString('de-DE', {month:'long', year:'numeric'})}</h2>
+    <span><button class="navb today" data-nav="0">Heute</button> <button class="navb" data-nav="1">▶</button></span></div>
+    <div class="legend"><span><i style="background:var(--yellowSoft);border:1.5px solid var(--yellow)"></i>Offen</span><span><i style="background:#0E9A70"></i>Bestätigt</span><span><i style="background:var(--coralSoft);border:1.5px solid var(--coral)"></i>Abgelehnt</span></div>
+    <div class="cgrid">${grid}</div>${detail}`;
+}
+
 function renderList(){
-  const list = document.getElementById('list'), series = group(days);
+  const list = document.getElementById('list');
+  if(view === 'cal'){ list.innerHTML = calHTML(); return; }
+  const series = group(days);
   if(!series.length){ list.innerHTML = '<div class="empty">Noch keine Anfragen. 🐾</div>'; return; }
   list.innerHTML = series.map(s => {
     const n = s.days.length, c = s.c;

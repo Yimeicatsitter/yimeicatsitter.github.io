@@ -68,6 +68,23 @@ summary::-webkit-details-marker{display:none}summary::before{content:"▸ "}deta
 .cl{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:11px 0;border-top:2px dashed var(--line);font-size:17px;font-weight:700}
 .cl button{padding:9px 14px;border-radius:12px;border:2.5px solid var(--blue);background:var(--blue);color:#fff;font-size:14.5px;font-weight:800}
 .card,.s,.stat{background:rgba(255,255,255,.95)}
+.calhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.calhead h2{margin:0;font-size:20px;font-weight:800}
+.navb{padding:9px 15px;border-radius:12px;border:2.5px solid var(--border);background:#fff;font-weight:800;font-size:16px;color:var(--text)}
+.navb.today{background:var(--blue);border-color:var(--blue);color:#fff;font-size:14.5px}
+.cgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cw{text-align:center;font-size:13.5px;font-weight:800;color:var(--muted);padding:4px 0}
+.cd{min-height:80px;background:#fff;border:2px solid var(--line);border-radius:12px;padding:4px;overflow:hidden;cursor:pointer}
+.cd.off{background:transparent;border-color:transparent;cursor:default}
+.cd.today{border-color:var(--pink);border-width:2.5px}.cd.sel{background:var(--pinkSoft);border-color:var(--pink)}
+.dn{font-size:14px;font-weight:800;margin-bottom:3px}.cd.today .dn{color:var(--pink)}
+.cc{display:block;font-size:11px;font-weight:800;padding:1px 5px;border-radius:6px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc.pending{background:var(--yellowSoft);color:var(--yellow)}.cc.confirmed{background:#0E9A70;color:#fff}.cc.rejected{background:var(--coralSoft);color:var(--coral);text-decoration:line-through}
+.cm{font-size:11.5px;color:var(--muted);font-weight:800}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:14px;font-weight:700;color:var(--muted);margin:12px 2px 14px}
+.legend i{display:inline-block;width:13px;height:13px;border-radius:4px;margin-right:6px;vertical-align:-2px}
+.dtitle{font-size:17px;font-weight:800;margin:0 0 6px}
+@media (max-width:480px){.cd{min-height:70px;padding:3px}.cc{font-size:10px;padding:1px 3px}}
 .hello{display:flex;align-items:center;gap:12px;margin:2px 0 16px}
 .hello svg{width:64px;height:auto;flex:0 0 auto;filter:drop-shadow(0 4px 6px rgba(255,111,168,.25))}
 .bubble{position:relative;background:#fff;border:2.5px solid var(--border);border-radius:18px;padding:11px 15px;font-size:16px;font-weight:800;color:var(--text);box-shadow:0 6px 16px rgba(255,111,168,.14)}
@@ -122,6 +139,9 @@ const API_URL = "https://script.google.com/macros/s/AKfycbzcWLuB2Yz3xUYrJBfcbInX
 const app = document.getElementById('app');
 let key = localStorage.getItem('adminKey') || '';
 let data = {clients:[], bookings:[]}, tab = 'pending', shown = false, ops = 0;
+const p2 = n => String(n).padStart(2, '0');
+const isoOf = d => d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
+let calM = new Date(new Date().getFullYear(), new Date().getMonth(), 1), calSel = isoOf(new Date());
 const openSet = new Set();
 
 const esc = s => String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -147,6 +167,32 @@ function group(list){
     s.days.forEach(d => { if(s.c[d.status] !== undefined) s.c[d.status]++; });
     return s;
   }).sort((a,b) => a.start.localeCompare(b.start));
+}
+
+function calHTML(){
+  const y = calM.getFullYear(), m = calM.getMonth(), by = {};
+  data.bookings.forEach(x => { (by[x.date] = by[x.date] || []).push(x); });
+  const order = {pending:0, confirmed:1, rejected:2};
+  const lead = (new Date(y, m, 1).getDay() + 6) % 7, dim = new Date(y, m + 1, 0).getDate(), cells = [];
+  for(let i = 0; i < lead; i++) cells.push(null);
+  for(let d = 1; d <= dim; d++) cells.push(d);
+  while(cells.length % 7) cells.push(null);
+  const todayIso = isoOf(new Date());
+  let grid = ['一','二','三','四','五','六','日'].map(w => `<div class="cw">${w}</div>`).join('');
+  cells.forEach(d => {
+    if(d === null){ grid += '<div class="cd off"></div>'; return; }
+    const key = y + '-' + p2(m + 1) + '-' + p2(d), l = (by[key] || []).slice().sort((a, c) => order[a.status] - order[c.status]);
+    const chips = l.slice(0, 3).map(x => `<span class="cc ${x.status}">${esc([...String(x.clientName)].slice(0, 5).join(''))}</span>`).join('');
+    grid += `<div class="cd ${key === todayIso ? 'today' : ''} ${key === calSel ? 'sel' : ''}" data-a="calday" data-date="${key}"><div class="dn">${d}</div>${chips}${l.length > 3 ? `<span class="cm">+${l.length - 3}</span>` : ''}</div>`;
+  });
+  const sel = (by[calSel] || []).slice().sort((a, c) => order[a.status] - order[c.status]);
+  const detail = calSel ? `<div class="card" style="margin-top:14px"><div class="dtitle">${fmt(calSel)} · 共 ${sel.length} 个预约</div>` +
+    (sel.length ? sel.map(x => `<div class="day"><span><span class="av">${av(x.clientName)}</span>${esc(x.clientName)} · ${freqTxt(x.freq, x.time)} <span class="badge ${x.status}">${stTxt(x.status)}</span>${x.note ? `<div class="note" style="margin:4px 0 0">📝 ${esc(x.note)}</div>` : ''}</span>
+      <span class="mini">${x.status !== 'confirmed' ? `<button class="ok" data-a="day" data-id="${x.id}" data-s="confirmed">✓</button>` : ''}${x.status !== 'rejected' ? `<button class="no" data-a="day" data-id="${x.id}" data-s="rejected">✕</button>` : ''}${x.status !== 'pending' ? `<button data-a="day" data-id="${x.id}" data-s="pending">↺</button>` : ''}</span></div>`).join('') : '<div class="empty" style="padding:14px">这天没有预约 😺</div>') + '</div>' : '';
+  return `<div class="calhead"><button class="navb" data-a="calnav" data-d="-1">◀</button><h2>📅 ${calM.toLocaleDateString('zh-CN', {year:'numeric', month:'long'})}</h2>
+    <span><button class="navb today" data-a="calnav" data-d="0">今天</button> <button class="navb" data-a="calnav" data-d="1">▶</button></span></div>
+    <div class="legend"><span><i style="background:var(--yellowSoft);border:1.5px solid var(--yellow)"></i>待确认</span><span><i style="background:#0E9A70"></i>已接受</span><span><i style="background:var(--coralSoft);border:1.5px solid var(--coral)"></i>已拒绝</span></div>
+    <div class="cgrid">${grid}</div>${detail}`;
 }
 
 function loginView(msg){
@@ -197,10 +243,11 @@ function render(){
     </div>
     <div class="tabs">
       <div class="tab ${tab==='pending'?'active':''}" data-a="tab" data-t="pending">待处理 (${nPend})</div>
+      <div class="tab ${tab==='cal'?'active':''}" data-a="tab" data-t="cal">📅 日历</div>
       <div class="tab ${tab==='done'?'active':''}" data-a="tab" data-t="done">已处理</div>
       <div class="tab ${tab==='all'?'active':''}" data-a="tab" data-t="all">全部 (${all.length})</div>
     </div>
-    <div id="list">${list.length ? list.map(s => {
+    <div id="list">${tab === 'cal' ? calHTML() : list.length ? list.map(s => {
       const n = s.days.length, c = s.c;
       return `<div class="s ${c.pending ? 'sp' : (c.rejected === n ? 'sr' : 'sc')}">
         <div class="top"><div><div class="rng"><span class="av">${av(s.name)}</span>${esc(s.name)}</div><div class="meta" style="margin:2px 0 0">${rng(s.start, s.end)}</div></div>
@@ -229,6 +276,8 @@ app.addEventListener('click', async e => {
   const b = e.target.closest('[data-a]'); if(!b) return;
   const a = b.dataset.a;
   if(a === 'tab'){ tab = b.dataset.t; render(); return; }
+  if(a === 'calnav'){ const dd = +b.dataset.d; calM = dd === 0 ? new Date(new Date().getFullYear(), new Date().getMonth(), 1) : new Date(calM.getFullYear(), calM.getMonth() + dd, 1); if(dd === 0) calSel = isoOf(new Date()); render(); return; }
+  if(a === 'calday'){ calSel = b.dataset.date; render(); return; }
   if(a === 'copy'){
     const url = new URL('index.html?k=' + b.dataset.tk, location.href).href;
     try{ await navigator.clipboard.writeText(url); toast('链接已复制'); }catch(err){ prompt('复制这个链接:', url); }
