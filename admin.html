@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>猫咪预约 · 管理后台</title>
+<style>
+  :root{--bg:#faf6f0;--card:#fff;--text:#2b2420;--muted:#8a7f74;--border:#e7ddd0;--accent:#c07a4a;--accent-dark:#a3623a;--accent-soft:#f3e3d4;
+    --pending:#c99a2e;--pending-soft:#faf0d8;--confirmed:#4a7c59;--confirmed-soft:#e3f0e6;--rejected:#b3493f;--rejected-soft:#f8e3e0;}
+  @media (prefers-color-scheme: dark){:root{--bg:#1c1712;--card:#26201a;--text:#f2ece3;--muted:#a89a89;--border:#3a3128;--accent:#e0955f;--accent-dark:#c07a4a;--accent-soft:#3a2c1f;
+    --pending:#e0b84a;--pending-soft:#3a331c;--confirmed:#7fb894;--confirmed-soft:#233a29;--rejected:#e0857a;--rejected-soft:#3a2320;}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+  .wrap{max-width:640px;margin:0 auto;padding:22px 16px 60px}
+  h1{font-size:19px;margin:0 0 14px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px}
+  .card h2{font-size:15px;margin:0 0 12px}
+  input[type=text],input[type=password]{width:100%;border:1.5px solid var(--border);background:var(--bg);color:var(--text);border-radius:10px;padding:11px 12px;font-size:15px}
+  button{cursor:pointer;font-family:inherit}
+  .primary{padding:11px 16px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-size:14px;font-weight:700}
+  .row{display:flex;gap:8px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center}
+  .stat .n{font-size:22px;font-weight:800}.stat .l{font-size:12px;color:var(--muted)}
+  .stat.p .n{color:var(--pending)}.stat.c .n{color:var(--confirmed)}.stat.r .n{color:var(--rejected)}
+  .tabs{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto}
+  .tab{flex:0 0 auto;padding:8px 14px;border-radius:999px;border:1.5px solid var(--border);background:var(--card);font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap}
+  .tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .b{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px}
+  .top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+  .nm{font-weight:700;font-size:15px}.dt{color:var(--muted);font-size:13px;margin-top:2px}
+  .m{font-size:13.5px;margin-top:8px}.nt{font-size:13px;color:var(--muted);margin-top:4px;font-style:italic}
+  .badge{font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px}
+  .badge.pending{background:var(--pending-soft);color:var(--pending)}.badge.confirmed{background:var(--confirmed-soft);color:var(--confirmed)}.badge.rejected{background:var(--rejected-soft);color:var(--rejected)}
+  .acts{display:flex;gap:8px;margin-top:12px}
+  .acts button{flex:1;padding:9px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;font-weight:600}
+  .acts .ok{background:var(--confirmed-soft);border-color:var(--confirmed);color:var(--confirmed)}
+  .acts .no{background:var(--rejected-soft);border-color:var(--rejected);color:var(--rejected)}
+  .acts .del{color:var(--muted)}
+  .cl{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--border);font-size:14px}
+  .cl button{padding:7px 12px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);color:var(--text);font-size:13px;font-weight:600}
+  .empty{text-align:center;color:var(--muted);font-size:14px;padding:26px 10px}
+  .toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:var(--confirmed);color:#fff;padding:11px 18px;border-radius:999px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:.25s}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div class="toast" id="toast"></div>
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbzcWLuB2Yz3xUYrJBfcbInXtJDDFjT-JjB6gk9QvvVLx3PCiwsvHFTt3brVtpcV4o4PWw/exec";
+
+const app = document.getElementById('app');
+let key = localStorage.getItem('adminKey') || '';
+let data = {clients:[], bookings:[]}, tab = 'pending';
+
+const esc = s => String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const human = iso => new Date(iso + 'T00:00:00').toLocaleDateString('zh-CN', {year:'numeric', month:'2-digit', day:'2-digit', weekday:'short'});
+const freqTxt = b => b.freq === 'twice' ? '一天两次（上午+下午）' : (b.time === 'evening' ? '一天一次（下午）' : '一天一次（上午）');
+const stTxt = s => s === 'confirmed' ? '已确认' : s === 'rejected' ? '已拒绝' : '待确认';
+function toast(t){ const el = document.getElementById('toast'); el.textContent = t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'), 2200); }
+async function api(params){ const r = await fetch(API_URL + '?' + new URLSearchParams({...params, a:key})); return r.json(); }
+
+function loginView(msg){
+  app.innerHTML = `<h1>🐱 管理后台</h1><div class="card"><h2>输入管理员密码</h2>
+    ${msg ? `<p style="color:var(--rejected);font-size:13px">${msg}</p>` : ''}
+    <div class="row"><input type="password" id="k" placeholder="ADMIN_KEY"><button class="primary" id="go">进入</button></div></div>`;
+  document.getElementById('go').onclick = () => { key = document.getElementById('k').value.trim(); load(true); };
+}
+
+async function load(fromLogin){
+  if(!key){ loginView(); return; }
+  try{
+    const r = await api({action:'adminList'});
+    if(r.error){ localStorage.removeItem('adminKey'); key=''; loginView(fromLogin ? '密码不对' : ''); return; }
+    localStorage.setItem('adminKey', key);
+    data = r; render();
+  }catch(e){ if(fromLogin) loginView('连接失败,检查 API_URL'); }
+}
+
+function render(){
+  const all = data.bookings.slice().sort((a,b)=> a.date.localeCompare(b.date));
+  const c = {pending:0, confirmed:0, rejected:0};
+  all.forEach(b => c[b.status] !== undefined && c[b.status]++);
+  const list = tab === 'all' ? all : all.filter(b => b.status === tab);
+  app.innerHTML = `
+    <h1>🐱 猫咪预约后台</h1>
+    <div class="stats">
+      <div class="stat p"><div class="n">${c.pending}</div><div class="l">待确认</div></div>
+      <div class="stat c"><div class="n">${c.confirmed}</div><div class="l">已确认</div></div>
+      <div class="stat r"><div class="n">${c.rejected}</div><div class="l">已拒绝</div></div>
+    </div>
+    <div class="tabs">
+      ${[['pending','待确认'],['confirmed','已确认'],['rejected','已拒绝'],['all','全部']].map(([t,l]) =>
+        `<div class="tab ${tab===t?'active':''}" data-t="${t}">${l}</div>`).join('')}
+    </div>
+    <div id="list">${list.length ? list.map(b => `
+      <div class="b">
+        <div class="top"><div><div class="nm">${esc(b.clientName)}</div><div class="dt">${human(b.date)}</div></div>
+          <div class="badge ${b.status}">${stTxt(b.status)}</div></div>
+        <div class="m">${freqTxt(b)}</div>
+        ${b.note ? `<div class="nt">📝 ${esc(b.note)}</div>` : ''}
+        <div class="acts">
+          ${b.status !== 'confirmed' ? `<button class="ok" data-a="confirmed" data-id="${b.id}">✓ 接受</button>` : ''}
+          ${b.status !== 'rejected' ? `<button class="no" data-a="rejected" data-id="${b.id}">✕ 拒绝</button>` : ''}
+          <button class="del" data-a="delete" data-id="${b.id}">删除</button>
+        </div>
+      </div>`).join('') : '<div class="empty">这里还没有预约</div>'}</div>
+    <div class="card" style="margin-top:22px">
+      <h2>猫咪主人（每人一个专属链接）</h2>
+      <div class="row" style="margin-bottom:8px"><input type="text" id="newName" placeholder="新客户名字,如 Lisa"><button class="primary" id="addC">添加</button></div>
+      ${data.clients.length ? data.clients.map(cl => `
+        <div class="cl"><span>${esc(cl.name)}</span><button data-copy="${cl.token}">复制链接</button></div>`).join('') : '<div class="empty">还没有客户</div>'}
+    </div>`;
+  app.querySelectorAll('.tab').forEach(el => el.onclick = () => { tab = el.dataset.t; render(); });
+  app.querySelectorAll('[data-a]').forEach(btn => btn.onclick = async () => {
+    const a = btn.dataset.a, id = btn.dataset.id;
+    if(a === 'delete' && !confirm('确定删除这条预约?')) return;
+    btn.disabled = true;
+    const r = a === 'delete' ? await api({action:'adminDelete', id}) : await api({action:'adminSetStatus', id, status:a});
+    toast(r.error ? '失败: ' + r.error : '已更新'); load();
+  });
+  document.getElementById('addC').onclick = async () => {
+    const name = document.getElementById('newName').value.trim();
+    if(!name){ toast('请填名字'); return; }
+    const r = await api({action:'adminAddClient', name});
+    toast(r.error ? '失败: ' + r.error : '已添加,点"复制链接"发给客户'); load();
+  };
+  app.querySelectorAll('[data-copy]').forEach(btn => btn.onclick = async () => {
+    const url = new URL('index.html?k=' + btn.dataset.copy, location.href).href;
+    try{ await navigator.clipboard.writeText(url); toast('链接已复制'); }catch(e){ prompt('复制这个链接:', url); }
+  });
+}
+
+load();
+setInterval(() => { const f=document.getElementById('newName'); if(key && !(f && f.value)) load(); }, 30000);
+</script>
+</body>
+</html>
