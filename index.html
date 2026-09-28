@@ -120,6 +120,10 @@ html[data-theme="winter"] .primary{background:linear-gradient(135deg,#5FA8C4,#B8
  border:1.5px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;
  opacity:.8;box-shadow:0 3px 8px rgba(0,0,0,.1);padding:0}
 .seasonBtn:active{transform:scale(.9)}
+.langBtn{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:10px;z-index:6;width:32px;height:32px;border-radius:50%;
+ border:1.5px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;
+ opacity:.8;box-shadow:0 3px 8px rgba(0,0,0,.1);padding:0}
+.langBtn:active{transform:scale(.9)}
 .seasonPreviewRow{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 14px}
 .seasonMini{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:14px;cursor:pointer;
  display:flex;align-items:center;justify-content:center;opacity:.75;padding:0}
@@ -212,7 +216,105 @@ const API_URL = "https://script.google.com/macros/s/AKfycbzcWLuB2Yz3xUYrJBfcbInX
 const WA = "4917682543276", IG = "Mayuyu_ym";
 const K = new URLSearchParams(location.search).get('k');
 const app = document.getElementById('app');
-const seasonLabel = s => ({spring:'Frühlingsdesign', summer:'Sommerdesign', autumn:'Herbstdesign', winter:'Winterdesign'}[s]);
+
+// ---------------- i18n ----------------
+const I18N = {
+  de: {
+    linkErr: 'Bitte öffne den persönlichen Link, den du von Yimei bekommen hast. 🐱',
+    invalidLink: 'Dieser Link ist ungültig. Bitte frag Yimei nach einem neuen Link.',
+    connErr: 'Verbindung fehlgeschlagen. Bitte Seite neu laden.',
+    hello: n => `Hallo ${n}!`,
+    subtitle: 'Frag hier Katzenbetreuung bei Yimei an – für einen Tag oder eine ganze Serie.',
+    cardTitle: 'Neue Anfrage / Serientermin', from: 'Von', to: 'Bis',
+    freqLabel: 'Häufigkeit pro Tag', onceDay: '1× am Tag', twiceDay: '2× am Tag',
+    timeLabel: 'Uhrzeit', morning: 'Vormittags', evening: 'Abends', any: 'Egal',
+    noteLabel: 'Notiz (optional)', notePlaceholder: 'z. B. Schlüssel, Besonderheiten …',
+    sendBtn: 'Anfrage senden', notifyTitle: '✅ Gesendet – Yimei zusätzlich informieren?',
+    sec: 'Meine Anfragen', viewList: 'Liste', viewCal: '📅 Kalender',
+    seasonDefaultTitle: 'Standarddesign', xmasActive: 'Weihnachtsdesign aktiv', halloweenActive: 'Halloween-Design aktiv',
+    seasonLabels: {spring: 'Frühlingsdesign', summer: 'Sommerdesign', autumn: 'Herbstdesign', winter: 'Winterdesign'},
+    dateTakenToast: 'Datum übernommen ✓',
+    days1: '📅 1 Tag', daysN: n => `📅 ${n} Tage`, maxNote: ' – maximal 62 Tage',
+    weekdaysShort: ['Mo','Di','Mi','Do','Fr','Sa','So'], locale: 'de-DE',
+    legendOpen: 'Offen', legendConfirmed: 'Bestätigt', legendRejected: 'Abgelehnt',
+    today: 'Heute', noEntries: 'keine Einträge', entry: 'Eintrag', entries: 'Einträge',
+    requestThisDay: '➕ Für diesen Tag anfragen', emptyReqs: 'Noch keine Anfragen. 🐾',
+    day: 'Tag', dayPl: 'Tage',
+    stOpen: 'Offen', stConfirmed: 'Bestätigt', stRejected: 'Abgelehnt', stPartial: 'Teilweise',
+    chipConfirmed: n => `✓ ${n} bestätigt`, chipRejected: n => `✕ ${n} abgelehnt`, chipOpen: n => `⏳ ${n} offen`,
+    detailsToggle: 'Tage anzeigen',
+    savingNote: '⏳ Wird gespeichert …',
+    withdrawBtn: 'Offene Tage zurückziehen', reqCancelBtn: 'Stornierung beantragen',
+    cancelReqNote: n => `⏳ ${n} ${n === 1 ? 'Tag' : 'Tage'} Stornierung beantragt`,
+    confirmWithdraw: 'Offene Tage dieser Anfrage wirklich zurückziehen?',
+    confirmReqCancel: 'Für die bestätigten Tage eine Stornierung bei Yimei beantragen?',
+    toastWithdrawn: 'Zurückgezogen ✓', toastCancelReqSent: 'Storno-Anfrage gesendet ✓',
+    toastErr: m => 'Fehler: ' + m, toastConnFail: 'Verbindung fehlgeschlagen',
+    toastSent: 'Anfrage gesendet ✓', toastConnFailResend: 'Verbindung fehlgeschlagen – bitte nochmal senden',
+    igToast: 'Text kopiert – im Instagram-Chat einfügen & senden',
+    pickDate: 'Bitte Datum wählen', endBeforeStart: '„Bis“ liegt vor „Von“', maxDays: 'Maximal 62 Tage pro Anfrage',
+    dupe: (d, s) => 'Für ' + d + ' hast du schon eine Anfrage (' + s + ').',
+    timeTxt: t => t === 'morning' ? 'vormittags' : t === 'evening' ? 'abends' : 'egal (flexibel)',
+    freqTxt: (f, t, self) => f === 'twice' ? '2× am Tag (vormittags & abends)' : '1× am Tag, ' + self.timeTxt(t),
+    cshort: x => x.freq === 'twice' ? '2×' : x.time === 'morning' ? 'Vorm.' : x.time === 'evening' ? 'Abends' : 'Egal',
+    shareMsg: (name, rngTxt, n, freqTxt, note) => `Hallo Yimei, ich habe eine Anfrage gesendet 🐱
+Name: ${name}
+Zeitraum: ${rngTxt} (${n} ${n === 1 ? 'Tag' : 'Tage'})
+Häufigkeit: ${freqTxt}` + (note ? `
+Notiz: ${note}` : ''),
+    langBtnTitle: 'Switch to English',
+  },
+  en: {
+    linkErr: 'Please open the personal link Yimei sent you. 🐱',
+    invalidLink: "This link isn't valid. Please ask Yimei for a new one.",
+    connErr: 'Connection failed. Please reload the page.',
+    hello: n => `Hi ${n}!`,
+    subtitle: 'Request cat sitting with Yimei here – for one day or a whole series.',
+    cardTitle: 'New request / recurring dates', from: 'From', to: 'To',
+    freqLabel: 'Frequency per day', onceDay: '1× a day', twiceDay: '2× a day',
+    timeLabel: 'Time', morning: 'Morning', evening: 'Evening', any: 'Any time',
+    noteLabel: 'Note (optional)', notePlaceholder: 'e.g. key location, anything special…',
+    sendBtn: 'Send request', notifyTitle: '✅ Sent – let Yimei know too?',
+    sec: 'My requests', viewList: 'List', viewCal: '📅 Calendar',
+    seasonDefaultTitle: 'Standard theme', xmasActive: 'Christmas theme active', halloweenActive: 'Halloween theme active',
+    seasonLabels: {spring: 'Spring theme', summer: 'Summer theme', autumn: 'Autumn theme', winter: 'Winter theme'},
+    dateTakenToast: 'Date filled in ✓',
+    days1: '📅 1 day', daysN: n => `📅 ${n} days`, maxNote: ' – maximum 62 days',
+    weekdaysShort: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], locale: 'en-GB',
+    legendOpen: 'Open', legendConfirmed: 'Confirmed', legendRejected: 'Rejected',
+    today: 'Today', noEntries: 'no entries', entry: 'entry', entries: 'entries',
+    requestThisDay: '➕ Request for this day', emptyReqs: 'No requests yet. 🐾',
+    day: 'day', dayPl: 'days',
+    stOpen: 'Open', stConfirmed: 'Confirmed', stRejected: 'Rejected', stPartial: 'Partial',
+    chipConfirmed: n => `✓ ${n} confirmed`, chipRejected: n => `✕ ${n} rejected`, chipOpen: n => `⏳ ${n} open`,
+    detailsToggle: 'Show days',
+    savingNote: '⏳ Saving …',
+    withdrawBtn: 'Withdraw open days', reqCancelBtn: 'Request cancellation',
+    cancelReqNote: n => `⏳ Cancellation requested for ${n} ${n === 1 ? 'day' : 'days'}`,
+    confirmWithdraw: 'Really withdraw the open days of this request?',
+    confirmReqCancel: 'Request cancellation with Yimei for the confirmed days?',
+    toastWithdrawn: 'Withdrawn ✓', toastCancelReqSent: 'Cancellation request sent ✓',
+    toastErr: m => 'Error: ' + m, toastConnFail: 'Connection failed',
+    toastSent: 'Request sent ✓', toastConnFailResend: 'Connection failed – please send again',
+    igToast: 'Text copied – paste it in the Instagram chat & send',
+    pickDate: 'Please choose a date', endBeforeStart: '"To" is before "From"', maxDays: 'Maximum 62 days per request',
+    dupe: (d, s) => 'You already have a request for ' + d + ' (' + s + ').',
+    timeTxt: t => t === 'morning' ? 'in the morning' : t === 'evening' ? 'in the evening' : 'any time',
+    freqTxt: (f, t, self) => f === 'twice' ? '2× a day (morning & evening)' : '1× a day, ' + self.timeTxt(t),
+    cshort: x => x.freq === 'twice' ? '2×' : x.time === 'morning' ? 'AM' : x.time === 'evening' ? 'PM' : 'Any',
+    shareMsg: (name, rngTxt, n, freqTxt, note) => `Hi Yimei, I've sent a request 🐱
+Name: ${name}
+Dates: ${rngTxt} (${n} ${n === 1 ? 'day' : 'days'})
+Frequency: ${freqTxt}` + (note ? `
+Note: ${note}` : ''),
+    langBtnTitle: 'Auf Deutsch umschalten',
+  },
+};
+let lang = 'de';
+try{ lang = localStorage.getItem('lang_' + K) || 'de'; }catch(e){}
+document.documentElement.lang = lang;
+const t = () => I18N[lang];
+
 const seasonEmoji = s => ({spring:'🌸', summer:'☀️', autumn:'🍁', winter:'❄️'}[s]);
 function applyTheme(){
   const n = new Date(), mand = mandatoryTheme(n);
@@ -230,14 +332,13 @@ const openSet = new Set();
 const esc = s => String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const pad = n => String(n).padStart(2,'0');
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
-const fmt = iso => new Date(iso + 'T00:00:00').toLocaleDateString('de-DE', {day:'2-digit', month:'2-digit', year:'numeric'});
-const wd = iso => new Date(iso + 'T00:00:00').toLocaleDateString('de-DE', {weekday:'short', day:'2-digit', month:'2-digit'});
+const fmt = iso => new Date(iso + 'T00:00:00').toLocaleDateString(t().locale, {day:'2-digit', month:'2-digit', year:'numeric'});
+const wd = iso => new Date(iso + 'T00:00:00').toLocaleDateString(t().locale, {weekday:'short', day:'2-digit', month:'2-digit'});
 const rng = (a,b) => a === b ? fmt(a) : fmt(a) + ' – ' + fmt(b);
-const timeTxt = t => t === 'morning' ? 'vormittags' : t === 'evening' ? 'abends' : 'egal (flexibel)';
-const freqTxt = (f,t) => f === 'twice' ? '2× am Tag (vormittags & abends)' : '1× am Tag, ' + timeTxt(t);
-const stTxt = s => s === 'confirmed' ? 'Bestätigt' : s === 'rejected' ? 'Abgelehnt' : 'Offen';
+const freqTxt = (f,tm) => t().freqTxt(f, tm, t());
+const stTxt = s => s === 'confirmed' ? t().stConfirmed : s === 'rejected' ? t().stRejected : t().stOpen;
 const nDays = (a,b) => Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00')) / 86400000) + 1;
-function toast(t){ const el = document.getElementById('toast'); el.textContent = t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'), 2600); }
+function toast(msgTxt){ const el = document.getElementById('toast'); el.textContent = msgTxt; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'), 2600); }
 async function api(p){ const r = await fetch(API_URL + '?' + new URLSearchParams(p)); return r.json(); }
 
 function group(list){
@@ -249,28 +350,30 @@ function group(list){
     s.start = f.date; s.end = s.days[s.days.length-1].date; s.freq = f.freq; s.time = f.time; s.note = f.note;
     s.c = {pending:0, confirmed:0, rejected:0};
     s.days.forEach(d => { if(s.c[d.status] !== undefined) s.c[d.status]++; });
+    s.cancelReq = s.days.filter(d => d.cancelRequested === '1' && d.status === 'confirmed').length;
     return s;
   }).sort((a,b) => b.start.localeCompare(a.start));
 }
 
 async function load(){
   if(ops > 0) return;
-  if(!K){ app.innerHTML = '<div class="err">Bitte öffne den persönlichen Link, den du von Yimei bekommen hast. 🐱</div>'; return; }
+  if(!K){ app.innerHTML = `<div class="err">${t().linkErr}</div>`; return; }
   if(!built){ try{ const c = JSON.parse(localStorage.getItem('c_' + K) || 'null'); if(c){ name = c.name; days = c.bookings; render(); } }catch(e){} }
   try{
     const r = await api({action:'list', k:K});
-    if(r.error){ localStorage.removeItem('c_' + K); built = false; app.innerHTML = '<div class="err">Dieser Link ist ungültig. Bitte frag Yimei nach einem neuen Link.</div>'; return; }
+    if(r.error){ localStorage.removeItem('c_' + K); built = false; app.innerHTML = `<div class="err">${t().invalidLink}</div>`; return; }
     name = r.name; days = r.bookings; try{ localStorage.setItem('c_' + K, JSON.stringify(r)); }catch(e){}
     render();
-  }catch(e){ if(!built) app.innerHTML = '<div class="err">Verbindung fehlgeschlagen. Bitte Seite neu laden.</div>'; }
+  }catch(e){ if(!built) app.innerHTML = `<div class="err">${t().connErr}</div>`; }
 }
 
 function render(){
   if(!built){
     app.innerHTML = `
+      <button class="langBtn" id="langBtn" title="${t().langBtnTitle}">${lang === 'de' ? '🇬🇧' : '🇩🇪'}</button>
       ${themeState.mode === 'choice'
-        ? `<button class="seasonBtn" id="seasonBtn" title="${themeState.pref === 'season' ? 'Standarddesign' : seasonLabel(themeState.season)}">${themeState.pref === 'season' ? '🎀' : seasonEmoji(themeState.season)}</button>`
-        : `<div class="seasonBtn" style="pointer-events:none;opacity:.55" title="${themeState.theme === 'xmas' ? 'Weihnachtsdesign aktiv' : 'Halloween-Design aktiv'}">${themeState.theme === 'xmas' ? '🎄' : '🎃'}</div>`}
+        ? `<button class="seasonBtn" id="seasonBtn" title="${themeState.pref === 'season' ? t().seasonDefaultTitle : t().seasonLabels[themeState.season]}">${themeState.pref === 'season' ? '🎀' : seasonEmoji(themeState.season)}</button>`
+        : `<div class="seasonBtn" style="pointer-events:none;opacity:.55" title="${themeState.theme === 'xmas' ? t().xmasActive : t().halloweenActive}">${themeState.theme === 'xmas' ? '🎄' : '🎃'}</div>`}
       <div class="head"><svg viewBox="-46 -46 92 82" width="46" height="42" aria-hidden="true"><g transform="translate(0,0) scale(1)">
 <path d="M-34 -6 L-30 -42 L-8 -27 Z" fill="#FFB3D1"/><path d="M34 -6 L30 -42 L8 -27 Z" fill="#FFB3D1"/>
 <ellipse rx="37" ry="30" fill="#FFB3D1"/>
@@ -278,28 +381,28 @@ function render(){
 <path d="M-3 5 L3 5 L0 9 Z" fill="var(--noseColor)"/>
 <path d="M0 9 Q-4 14 -8 11 M0 9 Q4 14 8 11" stroke="#6B5A80" stroke-width="1.6" fill="none" stroke-linecap="round"/>
 <path d="M-24 7 L-42 3 M-24 12 L-42 15 M24 7 L42 3 M24 12 L42 15" stroke="#6B5A80" stroke-width="1.3" stroke-linecap="round"/>
-<circle cx="-23" cy="6" r="4" fill="var(--cheekColor)" opacity=".55"/><circle cx="23" cy="6" r="4" fill="var(--cheekColor)" opacity=".55"/></g></svg><h1>Hallo ${esc(name)}!</h1></div>
-      <p class="sub">Frag hier Katzenbetreuung bei Yimei an – für einen Tag oder eine ganze Serie.</p>
+<circle cx="-23" cy="6" r="4" fill="var(--cheekColor)" opacity=".55"/><circle cx="23" cy="6" r="4" fill="var(--cheekColor)" opacity=".55"/></g></svg><h1>${t().hello(esc(name))}</h1></div>
+      <p class="sub">${t().subtitle}</p>
       <div class="card">
-        <h2>Neue Anfrage / Serientermin</h2>
+        <h2>${t().cardTitle}</h2>
         <div class="two">
-          <div class="field"><label>Von</label><input type="date" id="start" min="${today()}" value="${today()}"></div>
-          <div class="field"><label>Bis</label><input type="date" id="end" min="${today()}" value="${today()}"></div>
+          <div class="field"><label>${t().from}</label><input type="date" id="start" min="${today()}" value="${today()}"></div>
+          <div class="field"><label>${t().to}</label><input type="date" id="end" min="${today()}" value="${today()}"></div>
         </div>
         <div class="info" id="info"></div>
-        <div class="field"><label>Häufigkeit pro Tag</label>
-          <div class="pills" id="freq"><div class="pill active" data-v="once">1× am Tag</div><div class="pill" data-v="twice">2× am Tag</div></div></div>
-        <div class="field" id="timeF"><label>Uhrzeit</label>
-          <div class="pills" id="time"><div class="pill blue active" data-v="morning">Vormittags</div><div class="pill blue" data-v="evening">Abends</div><div class="pill blue" data-v="any">Egal</div></div></div>
-        <div class="field"><label>Notiz (optional)</label><textarea id="note" rows="2" placeholder="z. B. Schlüssel, Besonderheiten …"></textarea></div>
-        <button class="primary" id="send">Anfrage senden</button>
+        <div class="field"><label>${t().freqLabel}</label>
+          <div class="pills" id="freq"><div class="pill active" data-v="once">${t().onceDay}</div><div class="pill" data-v="twice">${t().twiceDay}</div></div></div>
+        <div class="field" id="timeF"><label>${t().timeLabel}</label>
+          <div class="pills" id="time"><div class="pill blue active" data-v="morning">${t().morning}</div><div class="pill blue" data-v="evening">${t().evening}</div><div class="pill blue" data-v="any">${t().any}</div></div></div>
+        <div class="field"><label>${t().noteLabel}</label><textarea id="note" rows="2" placeholder="${t().notePlaceholder}"></textarea></div>
+        <button class="primary" id="send">${t().sendBtn}</button>
         <div class="notify" id="notifyBox" style="display:none">
-          <div class="t">✅ Gesendet – Yimei zusätzlich informieren?</div>
+          <div class="t">${t().notifyTitle}</div>
           <div class="nrow"><button class="nb wa" id="waBtn">WhatsApp</button><button class="nb ig" id="igBtn">Instagram</button></div>
         </div>
       </div>
-      <div class="sec">Meine Anfragen</div>
-      <div class="pills viewsw" id="view"><div class="pill active" data-v="list">Liste</div><div class="pill" data-v="cal">📅 Kalender</div></div>
+      <div class="sec">${t().sec}</div>
+      <div class="pills viewsw" id="view"><div class="pill active" data-v="list">${t().viewList}</div><div class="pill" data-v="cal">${t().viewCal}</div></div>
       <div id="list"></div>`;
     built = true;
     const start = document.getElementById('start'), end = document.getElementById('end');
@@ -311,13 +414,21 @@ function render(){
     document.getElementById('time').onclick = e => { const p = e.target.closest('.pill'); if(!p) return; time = p.dataset.v;
       [...p.parentNode.children].forEach(x => x.classList.toggle('active', x === p)); };
     document.getElementById('send').onclick = send;
+    const lb = document.getElementById('langBtn');
+    if(lb){ lb.onclick = () => {
+      lang = lang === 'de' ? 'en' : 'de';
+      try{ localStorage.setItem('lang_' + K, lang); }catch(err){}
+      document.documentElement.lang = lang;
+      built = false;
+      render();
+    }; }
     const sb = document.getElementById('seasonBtn');
     if(sb){ sb.onclick = () => {
       const next = themeState.pref === 'season' ? 'default' : 'season';
       try{ localStorage.setItem('themePref_' + K, next); }catch(err){}
       themeState = applyTheme();
       sb.textContent = themeState.pref === 'season' ? '🎀' : seasonEmoji(themeState.season);
-      sb.title = themeState.pref === 'season' ? 'Standarddesign' : seasonLabel(themeState.season);
+      sb.title = themeState.pref === 'season' ? t().seasonDefaultTitle : t().seasonLabels[themeState.season];
     }; }
     document.getElementById('view').onclick = e => { const p = e.target.closest('.pill'); if(!p) return; view = p.dataset.v;
       [...p.parentNode.children].forEach(x => x.classList.toggle('active', x === p)); renderList(); };
@@ -331,15 +442,27 @@ function render(){
       const cd = e.target.closest('[data-day]'); if(cd){ calSel = cd.dataset.day; renderList(); return; }
       const pf = e.target.closest('[data-prefill]');
       if(pf){ const s = document.getElementById('start'), en = document.getElementById('end'); s.value = pf.dataset.prefill; en.min = s.value; en.value = s.value; info();
-        s.scrollIntoView({behavior:'smooth', block:'center'}); toast('Datum übernommen ✓'); return; }
+        s.scrollIntoView({behavior:'smooth', block:'center'}); toast(t().dateTakenToast); return; }
+      const rc = e.target.closest('[data-reqcancel]');
+      if(rc){
+        if(!confirm(t().confirmReqCancel)) return;
+        const sid = rc.dataset.reqcancel, backup = days.map(d => ({...d}));
+        days.forEach(d => { if((d.seriesId || d.id) === sid && d.status === 'confirmed') d.cancelRequested = '1'; });
+        renderList(); toast(t().toastCancelReqSent);
+        ops++;
+        try{ const r = await api({action:'requestCancel', k:K, sid}); if(r.error){ days = backup; renderList(); toast(t().toastErr(r.error)); } }
+        catch(err){ days = backup; renderList(); toast(t().toastConnFail); }
+        ops--; if(!ops) load();
+        return;
+      }
       const b = e.target.closest('[data-cancel]'); if(!b) return;
-      if(!confirm('Offene Tage dieser Anfrage wirklich zurückziehen?')) return;
+      if(!confirm(t().confirmWithdraw)) return;
       const sid = b.dataset.cancel, backup = days;
       days = days.filter(d => !((d.seriesId || d.id) === sid && d.status === 'pending'));
-      renderList(); toast('Zurückgezogen ✓');
+      renderList(); toast(t().toastWithdrawn);
       ops++;
-      try{ const r = await api({action:'cancel', k:K, sid}); if(r.error){ days = backup; renderList(); toast('Fehler: ' + r.error); } }
-      catch(err){ days = backup; renderList(); toast('Verbindung fehlgeschlagen'); }
+      try{ const r = await api({action:'cancel', k:K, sid}); if(r.error){ days = backup; renderList(); toast(t().toastErr(r.error)); } }
+      catch(err){ days = backup; renderList(); toast(t().toastConnFail); }
       ops--; if(!ops) load();
     };
     info();
@@ -351,11 +474,10 @@ function info(){
   const a = document.getElementById('start').value, b = document.getElementById('end').value, el = document.getElementById('info');
   if(!a || !b || b < a){ el.textContent = ''; return; }
   const n = nDays(a,b);
-  el.innerHTML = n === 1 ? '📅 <b>1 Tag</b>' : `📅 <b>${n} Tage</b> (${rng(a,b)})` + (n > 62 ? ' – maximal 62 Tage' : '');
+  el.innerHTML = (n === 1 ? t().days1 : `${t().daysN(n)} (${rng(a,b)})`) + (n > 62 ? t().maxNote : '');
 }
 
 const p2 = n => String(n).padStart(2, '0');
-const cshort = x => x.freq === 'twice' ? '2×' : x.time === 'morning' ? 'Vorm.' : x.time === 'evening' ? 'Abends' : 'Egal';
 function calHTML(){
   if(!calSel) calSel = today();
   const y = calM.getFullYear(), m = calM.getMonth(), by = {}, order = {pending:0, confirmed:1, rejected:2};
@@ -364,20 +486,20 @@ function calHTML(){
   for(let i = 0; i < lead; i++) cells.push(null);
   for(let d = 1; d <= dim; d++) cells.push(d);
   while(cells.length % 7) cells.push(null);
-  let grid = ['Mo','Di','Mi','Do','Fr','Sa','So'].map(w => `<div class="cw">${w}</div>`).join('');
+  let grid = t().weekdaysShort.map(w => `<div class="cw">${w}</div>`).join('');
   cells.forEach(d => {
     if(d === null){ grid += '<div class="cd off"></div>'; return; }
     const key = y + '-' + p2(m + 1) + '-' + p2(d), l = (by[key] || []).slice().sort((a, c) => order[a.status] - order[c.status]);
     grid += `<div class="cd ${key === today() ? 'today' : ''} ${key === calSel ? 'sel' : ''}" data-day="${key}"><div class="dn">${d}</div>` +
-      l.slice(0, 2).map(x => `<span class="cc ${x.status}">${cshort(x)}</span>`).join('') + (l.length > 2 ? `<span class="cm">+${l.length - 2}</span>` : '') + '</div>';
+      l.slice(0, 2).map(x => `<span class="cc ${x.status}">${t().cshort(x)}</span>`).join('') + (l.length > 2 ? `<span class="cm">+${l.length - 2}</span>` : '') + '</div>';
   });
   const sel = (by[calSel] || []).slice().sort((a, c) => order[a.status] - order[c.status]);
-  const detail = `<div class="card" style="margin-top:14px"><div class="dtitle">${wd(calSel)} · ${sel.length ? sel.length + (sel.length === 1 ? ' Eintrag' : ' Einträge') : 'keine Einträge'}</div>` +
+  const detail = `<div class="card" style="margin-top:14px"><div class="dtitle">${wd(calSel)} · ${sel.length ? sel.length + ' ' + (sel.length === 1 ? t().entry : t().entries) : t().noEntries}</div>` +
     sel.map(x => `<div class="day"><span>${freqTxt(x.freq, x.time)}${x.note ? `<div class="meta" style="margin:3px 0 0">📝 ${esc(x.note)}</div>` : ''}</span><span class="badge ${x.status}">${stTxt(x.status)}</span></div>`).join('') +
-    (calSel >= today() ? `<button class="ghost" data-prefill="${calSel}" style="margin-top:10px">➕ Für diesen Tag anfragen</button>` : '') + '</div>';
-  return `<div class="calhead"><button class="navb" data-nav="-1">◀</button><h2>${calM.toLocaleDateString('de-DE', {month:'long', year:'numeric'})}</h2>
-    <span><button class="navb today" data-nav="0">Heute</button> <button class="navb" data-nav="1">▶</button></span></div>
-    <div class="legend"><span><i style="background:var(--yellowSoft);border:1.5px solid var(--yellow)"></i>Offen</span><span><i style="background:#0E9A70"></i>Bestätigt</span><span><i style="background:var(--coralSoft);border:1.5px solid var(--coral)"></i>Abgelehnt</span></div>
+    (calSel >= today() ? `<button class="ghost" data-prefill="${calSel}" style="margin-top:10px">${t().requestThisDay}</button>` : '') + '</div>';
+  return `<div class="calhead"><button class="navb" data-nav="-1">◀</button><h2>${calM.toLocaleDateString(t().locale, {month:'long', year:'numeric'})}</h2>
+    <span><button class="navb today" data-nav="0">${t().today}</button> <button class="navb" data-nav="1">▶</button></span></div>
+    <div class="legend"><span><i style="background:var(--yellowSoft);border:1.5px solid var(--yellow)"></i>${t().legendOpen}</span><span><i style="background:#0E9A70"></i>${t().legendConfirmed}</span><span><i style="background:var(--coralSoft);border:1.5px solid var(--coral)"></i>${t().legendRejected}</span></div>
     <div class="cgrid">${grid}</div>${detail}`;
 }
 
@@ -386,37 +508,40 @@ function renderList(){
   const list = document.getElementById('list');
   if(view === 'cal'){ list.innerHTML = calHTML(); return; }
   const series = group(days);
-  if(!series.length){ list.innerHTML = '<div class="empty">Noch keine Anfragen. 🐾</div>'; return; }
+  if(!series.length){ list.innerHTML = `<div class="empty">${t().emptyReqs}</div>`; return; }
   list.innerHTML = series.map(s => {
     const n = s.days.length, c = s.c;
-    const [cls, txt] = c.pending === n ? ['pending','Offen'] : c.confirmed === n ? ['confirmed','Bestätigt'] : c.rejected === n ? ['rejected','Abgelehnt'] : ['partial','Teilweise'];
+    const [cls, txt] = c.pending === n ? ['pending', t().stOpen] : c.confirmed === n ? ['confirmed', t().stConfirmed] : c.rejected === n ? ['rejected', t().stRejected] : ['partial', t().stPartial];
     return `<div class="s">
       <div class="top"><div class="rng">${rng(s.start, s.end)}</div><div class="badge ${cls}">${txt}</div></div>
-      <div class="meta">${n} ${n === 1 ? 'Tag' : 'Tage'} · ${freqTxt(s.freq, s.time)}</div>
+      <div class="meta">${n} ${n === 1 ? t().day : t().dayPl} · ${freqTxt(s.freq, s.time)}</div>
       ${s.note ? `<div class="note">📝 ${esc(s.note)}</div>` : ''}
-      <div>${c.confirmed ? `<span class="chip c">✓ ${c.confirmed} bestätigt</span>` : ''}${c.rejected ? `<span class="chip r">✕ ${c.rejected} abgelehnt</span>` : ''}${c.pending ? `<span class="chip p">⏳ ${c.pending} offen</span>` : ''}</div>
-      ${n > 1 ? `<details data-sid="${s.sid}" ${openSet.has(s.sid) ? 'open' : ''}><summary>Tage anzeigen</summary>
-        ${s.days.map(d => `<div class="day"><span>${wd(d.date)}</span><span class="badge ${d.status}">${stTxt(d.status)}</span></div>`).join('')}</details>` : ''}
-      ${String(s.sid).indexOf('tmp') === 0 ? `<div class="meta" style="margin:8px 0 0">⏳ Wird gespeichert …</div>` : (c.pending ? `<button class="ghost" data-cancel="${s.sid}">Offene Tage zurückziehen</button>` : '')}
+      <div>${c.confirmed ? `<span class="chip c">${t().chipConfirmed(c.confirmed)}</span>` : ''}${c.rejected ? `<span class="chip r">${t().chipRejected(c.rejected)}</span>` : ''}${c.pending ? `<span class="chip p">${t().chipOpen(c.pending)}</span>` : ''}</div>
+      ${n > 1 ? `<details data-sid="${s.sid}" ${openSet.has(s.sid) ? 'open' : ''}><summary>${t().detailsToggle}</summary>
+        ${s.days.map(d => `<div class="day"><span>${wd(d.date)}</span><span class="badge ${d.status}">${stTxt(d.status)}${d.cancelRequested === '1' ? ' ⏳' : ''}</span></div>`).join('')}</details>` : ''}
+      ${(() => {
+        if(String(s.sid).indexOf('tmp') === 0) return `<div class="meta" style="margin:8px 0 0">${t().savingNote}</div>`;
+        const parts = [];
+        if(c.pending) parts.push(`<button class="ghost" data-cancel="${s.sid}">${t().withdrawBtn}</button>`);
+        if(c.confirmed - s.cancelReq > 0) parts.push(`<button class="ghost" data-reqcancel="${s.sid}" style="margin-top:6px">${t().reqCancelBtn}</button>`);
+        if(s.cancelReq > 0) parts.push(`<div class="meta" style="margin-top:6px;color:var(--blueText)">${t().cancelReqNote(s.cancelReq)}</div>`);
+        return parts.join('');
+      })()}
     </div>`;
   }).join('');
 }
 
 function msg(){
   const a = document.getElementById('start').value, b = document.getElementById('end').value, note = document.getElementById('note').value.trim();
-  return `Hallo Yimei, ich habe eine Anfrage gesendet 🐱
-Name: ${name}
-Zeitraum: ${rng(a,b)} (${nDays(a,b)} ${nDays(a,b) === 1 ? 'Tag' : 'Tage'})
-Häufigkeit: ${freqTxt(freq, time)}` + (note ? `
-Notiz: ${note}` : '');
+  return t().shareMsg(name, rng(a,b), nDays(a,b), freqTxt(freq, time), note);
 }
 function valid(){
   const a = document.getElementById('start').value, b = document.getElementById('end').value;
-  if(!a || !b){ toast('Bitte Datum wählen'); return false; }
-  if(b < a){ toast('„Bis“ liegt vor „Von“'); return false; }
-  if(nDays(a,b) > 62){ toast('Maximal 62 Tage pro Anfrage'); return false; }
+  if(!a || !b){ toast(t().pickDate); return false; }
+  if(b < a){ toast(t().endBeforeStart); return false; }
+  if(nDays(a,b) > 62){ toast(t().maxDays); return false; }
   const dupe = days.find(d => d.status !== 'rejected' && d.date >= a && d.date <= b);
-  if(dupe){ toast('Für ' + fmt(dupe.date) + ' hast du schon eine Anfrage (' + stTxt(dupe.status) + ').'); return false; }
+  if(dupe){ toast(t().dupe(fmt(dupe.date), stTxt(dupe.status))); return false; }
   return true;
 }
 function notify(kind){
@@ -424,7 +549,7 @@ function notify(kind){
   const text = msg();
   if(kind === 'wa'){ window.open('https://wa.me/' + WA + '?text=' + encodeURIComponent(text), '_blank'); return; }
   if(navigator.clipboard) navigator.clipboard.writeText(text).catch(()=>{});
-  toast('Text kopiert – im Instagram-Chat einfügen & senden');
+  toast(t().igToast);
   window.open('https://ig.me/m/' + IG, '_blank');
 }
 function eachDay(a, z){ const out = []; let d = new Date(a + 'T00:00:00Z'); const e = new Date(z + 'T00:00:00Z'); while(d <= e){ out.push(d.toISOString().slice(0,10)); d = new Date(d.getTime() + 86400000); } return out; }
@@ -434,16 +559,16 @@ async function send(){
   const btn = document.getElementById('send');
   sending = true; btn.disabled = true; btn.style.opacity = '.6';
   const start = document.getElementById('start').value, end = document.getElementById('end').value, note = document.getElementById('note').value.trim();
-  const f = freq, t = f === 'twice' ? 'any' : time, sid = 'tmp' + Date.now();
-  const added = eachDay(start, end).map((d, i) => ({id:'tmp' + i + sid, seriesId:sid, date:d, freq:f, time:t, note, status:'pending'}));
+  const f = freq, tm = f === 'twice' ? 'any' : time, sid = 'tmp' + Date.now();
+  const added = eachDay(start, end).map((d, i) => ({id:'tmp' + i + sid, seriesId:sid, date:d, freq:f, time:tm, note, status:'pending'}));
   days = days.concat(added); justSent = true; renderList(); document.getElementById('note').value = '';
-  toast('Anfrage gesendet ✓');
+  toast(t().toastSent);
   const r0 = btn.getBoundingClientRect(); celebrate(r0.left + r0.width / 2, r0.top + r0.height / 2);
   ops++;
   try{
-    const r = await api({action:'add', k:K, start, end, freq:f, time:t, note});
-    if(r.error){ days = days.filter(d => d.seriesId !== sid); renderList(); toast('Fehler: ' + r.error); }
-  }catch(e){ days = days.filter(d => d.seriesId !== sid); renderList(); toast('Verbindung fehlgeschlagen – bitte nochmal senden'); }
+    const r = await api({action:'add', k:K, start, end, freq:f, time:tm, note});
+    if(r.error){ days = days.filter(d => d.seriesId !== sid); renderList(); toast(t().toastErr(r.error)); }
+  }catch(e){ days = days.filter(d => d.seriesId !== sid); renderList(); toast(t().toastConnFailResend); }
   finally{ sending = false; btn.disabled = false; btn.style.opacity = ''; }
   ops--; if(!ops) load();
 }

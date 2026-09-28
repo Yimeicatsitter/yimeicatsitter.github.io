@@ -263,6 +263,7 @@ function group(list){
     s.start = f.date; s.end = s.days[s.days.length-1].date; s.freq = f.freq; s.time = f.time; s.note = f.note; s.name = f.clientName;
     s.c = {pending:0, confirmed:0, rejected:0};
     s.days.forEach(d => { if(s.c[d.status] !== undefined) s.c[d.status]++; });
+    s.cancelReq = s.days.filter(d => d.cancelRequested === '1' && d.status === 'confirmed').length;
     return s;
   }).sort((a,b) => a.start.localeCompare(b.start));
 }
@@ -351,23 +352,27 @@ function render(){
       const n = s.days.length, c = s.c;
       return `<div class="s ${c.pending ? 'sp' : (c.rejected === n ? 'sr' : 'sc')}">
         <div class="top"><div><div class="rng"><span class="av">${av(s.name)}</span>${esc(s.name)}</div><div class="meta" style="margin:2px 0 0">${rng(s.start, s.end)}</div></div>
-          <div>${c.pending ? `<span class="chip p">⏳ ${c.pending}</span>` : ''}${c.confirmed ? `<span class="chip c">✓ ${c.confirmed}</span>` : ''}${c.rejected ? `<span class="chip r">✕ ${c.rejected}</span>` : ''}</div></div>
+          <div>${c.pending ? `<span class="chip p">⏳ ${c.pending}</span>` : ''}${c.confirmed ? `<span class="chip c">✓ ${c.confirmed}</span>` : ''}${c.rejected ? `<span class="chip r">✕ ${c.rejected}</span>` : ''}${s.cancelReq ? `<span class="chip r">⚠️ ${s.cancelReq} 申请取消</span>` : ''}</div></div>
         <div class="meta">共 ${n} 天 · ${freqTxt(s.freq, s.time)}</div>
         ${s.note ? `<div class="note">📝 ${esc(s.note)}</div>` : ''}
+        ${s.cancelReq ? `<div class="acts">
+          <button class="ok" data-a="cancelApprove" data-sid="${s.sid}">✅ 同意取消(${s.cancelReq}天)</button>
+          <button class="no" data-a="cancelDeny" data-sid="${s.sid}">↩️ 驳回取消申请</button>
+        </div>` : ''}
         <div class="acts">
           <button class="ok" data-a="series" data-sid="${s.sid}" data-s="confirmed">🐾 整个系列接受</button>
           <button class="no" data-a="series" data-sid="${s.sid}" data-s="rejected">🙅 整个系列拒绝</button>
           <button class="del" data-a="delseries" data-sid="${s.sid}">删除</button>
         </div>
         ${n > 1 ? `<details data-sid="${s.sid}" ${openSet.has(s.sid) ? 'open' : ''}><summary>逐天处理(${n} 天)</summary>
-          ${s.days.map(d => `<div class="day"><span>${wd(d.date)} <span class="badge ${d.status}">${stTxt(d.status)}</span></span>
+          ${s.days.map(d => `<div class="day"><span>${wd(d.date)} <span class="badge ${d.status}">${stTxt(d.status)}${d.cancelRequested === '1' ? ' ⚠️取消申请' : ''}</span></span>
             <span class="mini">${d.status !== 'confirmed' ? `<button class="ok" data-a="day" data-id="${d.id}" data-s="confirmed">✓</button>` : ''}${d.status !== 'rejected' ? `<button class="no" data-a="day" data-id="${d.id}" data-s="rejected">✕</button>` : ''}${d.status !== 'pending' ? `<button data-a="day" data-id="${d.id}" data-s="pending">↺</button>` : ''}</span></div>`).join('')}</details>` : ''}
       </div>`;
     }).join('') : '<div class="empty"><span class="big">😺</span>这里还没有预约,猫咪们都睡着啦 💤</div>'}</div>
     <div class="card" style="margin-top:22px">
       <h2>猫咪主人(每人一个专属链接)</h2>
       <div class="row" style="margin-bottom:8px"><input type="text" id="newName" placeholder="新客户名字,如 Lisa"><button class="primary" data-a="addc">添加</button></div>
-      ${data.clients.length ? data.clients.map(cl => `<div class="cl"><span>🐱 ${esc(cl.name)}</span><button data-a="copy" data-tk="${cl.token}">复制链接</button></div>`).join('') : '<div class="empty">还没有客户</div>'}
+      ${data.clients.length ? data.clients.map(cl => `<div class="cl"><span>🐱 ${esc(cl.name)}</span><span style="display:flex;gap:6px"><button data-a="copy" data-tk="${cl.token}">复制链接</button><button data-a="delclient" data-tk="${cl.token}" data-name="${esc(cl.name)}" style="background:var(--coralSoft);border-color:var(--coral);color:var(--coral)">删除</button></span></div>`).join('') : '<div class="empty">还没有客户</div>'}
     </div>`;
 }
 
@@ -387,6 +392,16 @@ app.addEventListener('click', async e => {
   if(a === 'copy'){
     const url = new URL('index.html?k=' + b.dataset.tk, location.href).href;
     try{ await navigator.clipboard.writeText(url); toast('链接已复制'); }catch(err){ prompt('复制这个链接:', url); }
+    return;
+  }
+  if(a === 'delclient'){
+    const tk = b.dataset.tk, name = b.dataset.name;
+    if(!confirm('确定删除 ' + name + ' 吗？TA 的所有预约记录也会一并删除，且这个操作无法撤销。')) return;
+    const backupC = data.clients;
+    data.clients = data.clients.filter(c => c.token !== tk);
+    render(); toast('已删除 ' + name + '，同步中…');
+    // 管理页看到的预约不带 token,没法在本地精确过滤,交给下面的 run() 触发真正的 load() 刷新为服务器最新数据
+    await run(() => api({action:'adminDeleteClient', token:tk}), () => { data.clients = backupC; });
     return;
   }
   if(a === 'addc'){
@@ -420,6 +435,20 @@ app.addEventListener('click', async e => {
     const sid = b.dataset.sid, backup = data.bookings;
     data.bookings = data.bookings.filter(x => (x.seriesId || x.id) !== sid); render(); toast('已删除 ✓');
     await run(() => api({action:'adminDeleteSeries', sid}), () => { data.bookings = backup; });
+  }
+  else if(a === 'cancelApprove'){
+    const sid = b.dataset.sid;
+    if(!confirm('同意取消后,这些已确认的天数会直接删除,确定吗?')) return;
+    const backup = data.bookings;
+    data.bookings = data.bookings.filter(x => !((x.seriesId || x.id) === sid && x.cancelRequested === '1' && x.status === 'confirmed'));
+    render(); toast('已同意取消 ✓');
+    await run(() => api({action:'adminApproveCancel', sid}), () => { data.bookings = backup; });
+  }
+  else if(a === 'cancelDeny'){
+    const sid = b.dataset.sid;
+    const olds = data.bookings.filter(x => (x.seriesId || x.id) === sid && x.cancelRequested === '1').map(x => [x, x.cancelRequested]);
+    olds.forEach(([x]) => x.cancelRequested = ''); render(); toast('已驳回取消申请');
+    await run(() => api({action:'adminDenyCancel', sid}), () => olds.forEach(([x, o]) => x.cancelRequested = o));
   }
 });
 
