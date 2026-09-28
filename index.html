@@ -75,7 +75,7 @@ summary::-webkit-details-marker{display:none}summary::before{content:"▸ "}deta
 .dtitle{font-size:17px;font-weight:800;margin:0 0 6px}
 .viewsw{margin-bottom:12px}.viewsw .pill{min-width:0}
 @media (max-width:480px){.cd{min-height:58px;padding:3px}.cc{font-size:10px;padding:1px 3px}}
-.notify{background:var(--blueSoft);border-radius:18px;padding:12px 14px;margin:2px 0 14px}
+.notify{background:var(--blueSoft);border-radius:18px;padding:12px 14px;margin:14px 0 2px}
 .notify .t{font-size:15px;color:var(--blueText);font-weight:800;margin-bottom:8px}
 .notify .h{font-size:13.5px;color:var(--muted);margin-top:8px;font-weight:600}
 .nrow{display:flex;gap:8px}
@@ -188,12 +188,12 @@ function render(){
         <div class="field" id="timeF"><label>Uhrzeit</label>
           <div class="pills" id="time"><div class="pill blue active" data-v="morning">Vormittags</div><div class="pill blue" data-v="evening">Abends</div><div class="pill blue" data-v="any">Egal</div></div></div>
         <div class="field"><label>Notiz (optional)</label><textarea id="note" rows="2" placeholder="z. B. Schlüssel, Besonderheiten …"></textarea></div>
-        <div class="notify">
-          <div class="t">💌 Optional: Yimei zusätzlich per Nachricht informieren</div>
-          <div class="nrow"><button class="nb wa" id="waBtn">WhatsApp</button><button class="nb ig" id="igBtn">Instagram</button></div>
-          <div class="h">Unabhängig von „Anfrage senden“ – deine Anfrage wird auch ohne Nachricht gespeichert.</div>
-        </div>
         <button class="primary" id="send">Anfrage senden</button>
+        <div class="notify">
+          <div class="t">💌 Fertig! Optional kannst du Yimei zusätzlich per Nachricht Bescheid geben</div>
+          <div class="nrow"><button class="nb wa" id="waBtn">WhatsApp</button><button class="nb ig" id="igBtn">Instagram</button></div>
+          <div class="h">Nur zur Info – deine Anfrage ist durch „Anfrage senden“ oben bereits gespeichert.</div>
+        </div>
       </div>
       <div class="sec">Meine Anfragen</div>
       <div class="pills viewsw" id="view"><div class="pill active" data-v="list">Liste</div><div class="pill" data-v="cal">📅 Kalender</div></div>
