@@ -254,6 +254,8 @@ const I18N = {
     igToast: 'Text kopiert – im Instagram-Chat einfügen & senden',
     pickDate: 'Bitte Datum wählen', endBeforeStart: '„Bis“ liegt vor „Von“', maxDays: 'Maximal 62 Tage pro Anfrage',
     dupe: (d, s) => 'Für ' + d + ' hast du schon eine Anfrage (' + s + ').',
+    blockedDate: d => 'Yimei ist am ' + d + ' leider nicht verfügbar.',
+    legendBlocked: 'Nicht verfügbar',
     timeTxt: t => t === 'morning' ? 'vormittags' : t === 'evening' ? 'abends' : 'egal (flexibel)',
     freqTxt: (f, t, self) => f === 'twice' ? '2× am Tag (vormittags & abends)' : '1× am Tag, ' + self.timeTxt(t),
     cshort: x => x.freq === 'twice' ? '2×' : x.time === 'morning' ? 'Vorm.' : x.time === 'evening' ? 'Abends' : 'Egal',
@@ -299,6 +301,8 @@ Notiz: ${note}` : ''),
     igToast: 'Text copied – paste it in the Instagram chat & send',
     pickDate: 'Please choose a date', endBeforeStart: '"To" is before "From"', maxDays: 'Maximum 62 days per request',
     dupe: (d, s) => 'You already have a request for ' + d + ' (' + s + ').',
+    blockedDate: d => "Yimei isn't available on " + d + '.',
+    legendBlocked: 'Unavailable',
     timeTxt: t => t === 'morning' ? 'in the morning' : t === 'evening' ? 'in the evening' : 'any time',
     freqTxt: (f, t, self) => f === 'twice' ? '2× a day (morning & evening)' : '1× a day, ' + self.timeTxt(t),
     cshort: x => x.freq === 'twice' ? '2×' : x.time === 'morning' ? 'AM' : x.time === 'evening' ? 'PM' : 'Any',
@@ -326,7 +330,7 @@ function applyTheme(){
   return { mode:'choice', season, pref };
 }
 let themeState = applyTheme();
-let name = '', days = [], freq = 'once', time = 'morning', built = false, ops = 0, view = 'list', calM = new Date(new Date().getFullYear(), new Date().getMonth(), 1), calSel = '', justSent = false, sending = false;
+let name = '', days = [], blocked = [], freq = 'once', time = 'morning', built = false, ops = 0, view = 'list', calM = new Date(new Date().getFullYear(), new Date().getMonth(), 1), calSel = '', justSent = false, sending = false;
 const openSet = new Set();
 
 const esc = s => String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -358,11 +362,11 @@ function group(list){
 async function load(){
   if(ops > 0) return;
   if(!K){ app.innerHTML = `<div class="err">${t().linkErr}</div>`; return; }
-  if(!built){ try{ const c = JSON.parse(localStorage.getItem('c_' + K) || 'null'); if(c){ name = c.name; days = c.bookings; render(); } }catch(e){} }
+  if(!built){ try{ const c = JSON.parse(localStorage.getItem('c_' + K) || 'null'); if(c){ name = c.name; days = c.bookings; blocked = c.blocked || []; render(); } }catch(e){} }
   try{
     const r = await api({action:'list', k:K});
     if(r.error){ localStorage.removeItem('c_' + K); built = false; app.innerHTML = `<div class="err">${t().invalidLink}</div>`; return; }
-    name = r.name; days = r.bookings; try{ localStorage.setItem('c_' + K, JSON.stringify(r)); }catch(e){}
+    name = r.name; days = r.bookings; blocked = r.blocked || []; try{ localStorage.setItem('c_' + K, JSON.stringify(r)); }catch(e){}
     render();
   }catch(e){ if(!built) app.innerHTML = `<div class="err">${t().connErr}</div>`; }
 }
@@ -482,6 +486,7 @@ function calHTML(){
   if(!calSel) calSel = today();
   const y = calM.getFullYear(), m = calM.getMonth(), by = {}, order = {pending:0, confirmed:1, rejected:2};
   days.forEach(x => { (by[x.date] = by[x.date] || []).push(x); });
+  const blockedSet = new Set(blocked.map(x => x.date));
   const lead = (new Date(y, m, 1).getDay() + 6) % 7, dim = new Date(y, m + 1, 0).getDate(), cells = [];
   for(let i = 0; i < lead; i++) cells.push(null);
   for(let d = 1; d <= dim; d++) cells.push(d);
@@ -489,17 +494,18 @@ function calHTML(){
   let grid = t().weekdaysShort.map(w => `<div class="cw">${w}</div>`).join('');
   cells.forEach(d => {
     if(d === null){ grid += '<div class="cd off"></div>'; return; }
-    const key = y + '-' + p2(m + 1) + '-' + p2(d), l = (by[key] || []).slice().sort((a, c) => order[a.status] - order[c.status]);
-    grid += `<div class="cd ${key === today() ? 'today' : ''} ${key === calSel ? 'sel' : ''}" data-day="${key}"><div class="dn">${d}</div>` +
+    const key = y + '-' + p2(m + 1) + '-' + p2(d), l = (by[key] || []).slice().sort((a, c) => order[a.status] - order[c.status]), isBlocked = blockedSet.has(key);
+    grid += `<div class="cd ${key === today() ? 'today' : ''} ${key === calSel ? 'sel' : ''}" data-day="${key}" style="${isBlocked ? 'background:var(--coralSoft);opacity:.7' : ''}"><div class="dn" style="${isBlocked ? 'text-decoration:line-through' : ''}">${d}</div>` +
       l.slice(0, 2).map(x => `<span class="cc ${x.status}">${t().cshort(x)}</span>`).join('') + (l.length > 2 ? `<span class="cm">+${l.length - 2}</span>` : '') + '</div>';
   });
   const sel = (by[calSel] || []).slice().sort((a, c) => order[a.status] - order[c.status]);
-  const detail = `<div class="card" style="margin-top:14px"><div class="dtitle">${wd(calSel)} · ${sel.length ? sel.length + ' ' + (sel.length === 1 ? t().entry : t().entries) : t().noEntries}</div>` +
+  const selBlocked = blockedSet.has(calSel);
+  const detail = `<div class="card" style="margin-top:14px"><div class="dtitle">${wd(calSel)} · ${sel.length ? sel.length + ' ' + (sel.length === 1 ? t().entry : t().entries) : t().noEntries}${selBlocked ? ' · 🚫 ' + t().legendBlocked : ''}</div>` +
     sel.map(x => `<div class="day"><span>${freqTxt(x.freq, x.time)}${x.note ? `<div class="meta" style="margin:3px 0 0">📝 ${esc(x.note)}</div>` : ''}</span><span class="badge ${x.status}">${stTxt(x.status)}</span></div>`).join('') +
-    (calSel >= today() ? `<button class="ghost" data-prefill="${calSel}" style="margin-top:10px">${t().requestThisDay}</button>` : '') + '</div>';
+    (calSel >= today() && !selBlocked ? `<button class="ghost" data-prefill="${calSel}" style="margin-top:10px">${t().requestThisDay}</button>` : '') + '</div>';
   return `<div class="calhead"><button class="navb" data-nav="-1">◀</button><h2>${calM.toLocaleDateString(t().locale, {month:'long', year:'numeric'})}</h2>
     <span><button class="navb today" data-nav="0">${t().today}</button> <button class="navb" data-nav="1">▶</button></span></div>
-    <div class="legend"><span><i style="background:var(--yellowSoft);border:1.5px solid var(--yellow)"></i>${t().legendOpen}</span><span><i style="background:#0E9A70"></i>${t().legendConfirmed}</span><span><i style="background:var(--coralSoft);border:1.5px solid var(--coral)"></i>${t().legendRejected}</span></div>
+    <div class="legend"><span><i style="background:var(--yellowSoft);border:1.5px solid var(--yellow)"></i>${t().legendOpen}</span><span><i style="background:#0E9A70"></i>${t().legendConfirmed}</span><span><i style="background:var(--coralSoft);border:1.5px solid var(--coral)"></i>${t().legendRejected}</span><span><i style="background:var(--coralSoft)"></i>${t().legendBlocked}</span></div>
     <div class="cgrid">${grid}</div>${detail}`;
 }
 
@@ -535,17 +541,27 @@ function msg(){
   const a = document.getElementById('start').value, b = document.getElementById('end').value, note = document.getElementById('note').value.trim();
   return t().shareMsg(name, rng(a,b), nDays(a,b), freqTxt(freq, time), note);
 }
-function valid(){
+function validDates(){
   const a = document.getElementById('start').value, b = document.getElementById('end').value;
   if(!a || !b){ toast(t().pickDate); return false; }
   if(b < a){ toast(t().endBeforeStart); return false; }
   if(nDays(a,b) > 62){ toast(t().maxDays); return false; }
+  return true;
+}
+function valid(){
+  if(!validDates()) return false;
+  const a = document.getElementById('start').value, b = document.getElementById('end').value;
   const dupe = days.find(d => d.status !== 'rejected' && d.date >= a && d.date <= b);
   if(dupe){ toast(t().dupe(fmt(dupe.date), stTxt(dupe.status))); return false; }
+  const block = blocked.find(x => x.date >= a && x.date <= b);
+  if(block){ toast(t().blockedDate(fmt(block.date))); return false; }
   return true;
 }
 function notify(kind){
-  if(!valid()) return;
+  // 这里只检查日期本身合不合法（选没选、范围对不对），
+  // 不查"是否已经预约过"——发消息只是额外通知一下 Yimei，
+  // 不是再交一次预约，不该被"重复预约"的检查拦下来。
+  if(!validDates()) return;
   const text = msg();
   if(kind === 'wa'){ window.open('https://wa.me/' + WA + '?text=' + encodeURIComponent(text), '_blank'); return; }
   if(navigator.clipboard) navigator.clipboard.writeText(text).catch(()=>{});

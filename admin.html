@@ -240,7 +240,7 @@ const THEME_OPTIONS = [{k:'', e:'🎀', l:'Standard'}, {k:'spring', e:'🌸', l:
   if(pv) document.documentElement.dataset.theme = pv; else delete document.documentElement.dataset.theme;
 })();
 let key = localStorage.getItem('adminKey') || '';
-let data = {clients:[], bookings:[]}, tab = 'pending', shown = false, ops = 0;
+let data = {clients:[], bookings:[], blocked:[]}, tab = 'pending', shown = false, ops = 0;
 const p2 = n => String(n).padStart(2, '0');
 const isoOf = d => d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
 let calM = new Date(new Date().getFullYear(), new Date().getMonth(), 1), calSel = isoOf(new Date());
@@ -255,6 +255,25 @@ const freqTxt = (f,t) => f === 'twice' ? '一天两次(上午+傍晚)' : '一天
 const stTxt = s => s === 'confirmed' ? '已接受' : s === 'rejected' ? '已拒绝' : '待确认';
 function toast(t){ const el = document.getElementById('toast'); el.textContent = t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'), 2200); }
 async function api(p){ const r = await fetch(API_URL + '?' + new URLSearchParams({...p, a:key})); return r.json(); }
+
+function blockedGroups(list){
+  const sorted = list.slice().sort((a, b) => a.date.localeCompare(b.date));
+  const groups = [];
+  sorted.forEach(b => {
+    const prev = groups[groups.length - 1];
+    const prevNext = prev ? new Date(prev.dates[prev.dates.length - 1] + 'T00:00:00Z').getTime() + 86400000 : null;
+    if(prev && prev.note === b.note && new Date(b.date + 'T00:00:00Z').getTime() === prevNext){
+      prev.dates.push(b.date);
+    } else {
+      groups.push({ note: b.note, dates: [b.date] });
+    }
+  });
+  return groups.map(g => ({
+    note: g.note,
+    dates: g.dates,
+    label: g.dates.length === 1 ? fmt(g.dates[0]) : fmt(g.dates[0]) + ' → ' + fmt(g.dates[g.dates.length - 1])
+  }));
+}
 
 const AV = ['🐱','😸','🐈','😻','🐯','😽','🐾','🦁'];
 const av = n => AV[[...String(n)].reduce((h,ch) => (h*31 + ch.charCodeAt(0)) >>> 0, 7) % AV.length];
@@ -277,6 +296,7 @@ function group(list){
 function calHTML(){
   const y = calM.getFullYear(), m = calM.getMonth(), by = {};
   data.bookings.forEach(x => { (by[x.date] = by[x.date] || []).push(x); });
+  const blockedSet = new Set(data.blocked.map(x => x.date));
   const order = {pending:0, confirmed:1, rejected:2};
   const lead = (new Date(y, m, 1).getDay() + 6) % 7, dim = new Date(y, m + 1, 0).getDate(), cells = [];
   for(let i = 0; i < lead; i++) cells.push(null);
@@ -286,12 +306,14 @@ function calHTML(){
   let grid = ['一','二','三','四','五','六','日'].map(w => `<div class="cw">${w}</div>`).join('');
   cells.forEach(d => {
     if(d === null){ grid += '<div class="cd off"></div>'; return; }
-    const key = y + '-' + p2(m + 1) + '-' + p2(d), l = (by[key] || []).slice().sort((a, c) => order[a.status] - order[c.status]);
+    const key = y + '-' + p2(m + 1) + '-' + p2(d), l = (by[key] || []).slice().sort((a, c) => order[a.status] - order[c.status]), isBlocked = blockedSet.has(key);
     const chips = l.slice(0, 3).map(x => `<span class="cc ${x.status}">${esc([...String(x.clientName)].slice(0, 5).join(''))}</span>`).join('');
-    grid += `<div class="cd ${key === todayIso ? 'today' : ''} ${key === calSel ? 'sel' : ''}" data-a="calday" data-date="${key}"><div class="dn">${d}</div>${chips}${l.length > 3 ? `<span class="cm">+${l.length - 3}</span>` : ''}</div>`;
+    grid += `<div class="cd ${key === todayIso ? 'today' : ''} ${key === calSel ? 'sel' : ''}" data-a="calday" data-date="${key}" style="${isBlocked ? 'background:var(--coralSoft)' : ''}"><div class="dn">${d}${isBlocked ? ' 🚫' : ''}</div>${chips}${l.length > 3 ? `<span class="cm">+${l.length - 3}</span>` : ''}</div>`;
   });
   const sel = (by[calSel] || []).slice().sort((a, c) => order[a.status] - order[c.status]);
-  const detail = calSel ? `<div class="card" style="margin-top:14px"><div class="dtitle">${fmt(calSel)} · 共 ${sel.length} 个预约</div>` +
+  const selBlocked = calSel && blockedSet.has(calSel);
+  const detail = calSel ? `<div class="card" style="margin-top:14px"><div class="dtitle">${fmt(calSel)} · 共 ${sel.length} 个预约${selBlocked ? ' · 🚫 已标记不可用' : ''}</div>` +
+    (selBlocked ? `<button class="ghost" data-a="unblockRange" data-dates="${calSel}" style="margin-bottom:10px">解除这天的不可用标记</button>` : '') +
     (sel.length ? sel.map(x => `<div class="day"><span><span class="av">${av(x.clientName)}</span>${esc(x.clientName)} · ${freqTxt(x.freq, x.time)} <span class="badge ${x.status}">${stTxt(x.status)}</span>${x.note ? `<div class="note" style="margin:4px 0 0">📝 ${esc(x.note)}</div>` : ''}</span>
       <span class="mini">${x.status !== 'confirmed' ? `<button class="ok" data-a="day" data-id="${x.id}" data-s="confirmed">✓</button>` : ''}${x.status !== 'rejected' ? `<button class="no" data-a="day" data-id="${x.id}" data-s="rejected">✕</button>` : ''}${x.status !== 'pending' ? `<button data-a="day" data-id="${x.id}" data-s="pending">↺</button>` : ''}</span></div>`).join('') : '<div class="empty" style="padding:14px">这天没有预约 😺</div>') + '</div>' : '';
   return `<div class="calhead"><button class="navb" data-a="calnav" data-d="-1">◀</button><h2>📅 ${calM.toLocaleDateString('zh-CN', {year:'numeric', month:'long'})}</h2>
@@ -317,11 +339,11 @@ function loginView(msg){
 async function load(fromLogin){
   if(ops > 0 && !fromLogin) return;
   if(!key){ loginView(); return; }
-  if(!shown){ try{ const c = JSON.parse(localStorage.getItem('adminData') || 'null'); if(c){ data = c; shown = true; render(); } }catch(e){} }
+  if(!shown){ try{ const c = JSON.parse(localStorage.getItem('adminData') || 'null'); if(c){ data = c; if(!data.blocked) data.blocked = []; shown = true; render(); } }catch(e){} }
   try{
     const r = await api({action:'adminList'});
     if(r.error){ localStorage.removeItem('adminKey'); localStorage.removeItem('adminData'); shown = false; key = ''; loginView(fromLogin ? '密码不对' : ''); return; }
-    localStorage.setItem('adminKey', key); data = r; shown = true; try{ localStorage.setItem('adminData', JSON.stringify(r)); }catch(e){} render();
+    localStorage.setItem('adminKey', key); data = r; if(!data.blocked) data.blocked = []; shown = true; try{ localStorage.setItem('adminData', JSON.stringify(r)); }catch(e){} render();
   }catch(e){ if(fromLogin) loginView('连接失败,检查 API_URL'); }
 }
 
@@ -382,6 +404,16 @@ function render(){
       <h2>猫咪主人(每人一个专属链接)</h2>
       <div class="row" style="margin-bottom:8px"><input type="text" id="newName" placeholder="新客户名字,如 Lisa"><button class="primary" data-a="addc">添加</button></div>
       ${data.clients.length ? data.clients.map(cl => `<div class="cl"><span>🐱 ${esc(cl.name)}</span><span style="display:flex;gap:6px"><button data-a="copy" data-tk="${cl.token}">复制链接</button><button data-a="delclient" data-tk="${cl.token}" data-name="${esc(cl.name)}" style="background:var(--coralSoft);border-color:var(--coral);color:var(--coral)">删除</button></span></div>`).join('') : '<div class="empty">还没有客户</div>'}
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h2>🚫 不可用日期(客户看不到、选不了这些天)</h2>
+      <div class="two">
+        <div class="field"><label>从</label><input type="date" id="blockStart"></div>
+        <div class="field"><label>到</label><input type="date" id="blockEnd"></div>
+      </div>
+      <div class="field"><label>备注(可选)</label><input type="text" id="blockNote" placeholder="比如：休假、出差"></div>
+      <button class="primary" data-a="blockRange" style="margin-bottom:12px">标记为不可用</button>
+      ${data.blocked.length ? blockedGroups(data.blocked).map(g => `<div class="cl"><span>🚫 ${g.label}${g.note ? ` <span style="color:var(--muted);font-weight:600">· ${esc(g.note)}</span>` : ''}</span><button data-a="unblockRange" data-dates="${g.dates.join(',')}" style="background:var(--coralSoft);border-color:var(--coral);color:var(--coral)">解除</button></div>`).join('') : '<div class="empty">还没有标记任何不可用日期</div>'}
     </div>`;
 }
 
@@ -464,6 +496,25 @@ app.addEventListener('click', async e => {
     const olds = data.bookings.filter(x => (x.seriesId || x.id) === sid && x.status === 'confirmed').map(x => [x, x.paid]);
     olds.forEach(([x]) => x.paid = paid); render(); toast(paid === '1' ? '已标记为已付款 💰' : '已标记为未付款');
     await run(() => api({action:'adminSetPaid', sid, paid}), () => olds.forEach(([x, o]) => x.paid = o));
+  }
+  else if(a === 'blockRange'){
+    const start = document.getElementById('blockStart').value, end = document.getElementById('blockEnd').value || start;
+    const note = document.getElementById('blockNote').value.trim();
+    if(!start){ toast('请选择开始日期'); return; }
+    if(end < start){ toast('"到"早于"从"'); return; }
+    const backup = data.blocked;
+    const added = [];
+    let d = new Date(start + 'T00:00:00Z'); const e = new Date(end + 'T00:00:00Z');
+    while(d <= e){ const iso = d.toISOString().slice(0, 10); if(!data.blocked.some(x => x.date === iso)) added.push({date: iso, note}); d = new Date(d.getTime() + 86400000); }
+    data.blocked = data.blocked.concat(added); render(); toast('已标记为不可用 ✓');
+    await run(() => api({action:'adminBlockRange', start, end, note}), () => { data.blocked = backup; });
+  }
+  else if(a === 'unblockRange'){
+    const dates = b.dataset.dates.split(',');
+    const backup = data.blocked;
+    data.blocked = data.blocked.filter(x => dates.indexOf(x.date) < 0); render(); toast('已解除 ✓');
+    await run(() => Promise.all(dates.map(date => api({action:'adminUnblockDate', date}))).then(rs => rs.find(r => r.error) || {ok:true}),
+      () => { data.blocked = backup; });
   }
 });
 
