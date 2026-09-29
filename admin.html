@@ -620,10 +620,14 @@ app.addEventListener('click', async e => {
 });
 
 async function run(call, revert){
+  // 成功了就信任本地已经算好的乐观结果，不再立刻追问服务器——
+  // 避免撞上服务器缓存"最终一致"还没跟上的那个窗口，把刚生效的状态又冲刷回旧的。
+  // 失败了才重新拉取一次数据校正。每 60 秒还有后台轮询兜底同步。
   ops++;
-  try{ const r = await call(); if(r.error){ revert(); render(); toast(ta().toastFail(r.error)); } }
-  catch(e){ revert(); render(); toast(ta().toastNetFail); }
-  ops--; if(!ops) load();
+  let failed = false;
+  try{ const r = await call(); if(r.error){ failed = true; revert(); render(); toast(ta().toastFail(r.error)); } }
+  catch(e){ failed = true; revert(); render(); toast(ta().toastNetFail); }
+  ops--; if(!ops && failed) load();
 }
 
 load();
