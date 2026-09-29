@@ -359,7 +359,7 @@ const freqTxt = (f,tm) => t().freqTxt(f, tm, t());
 const stTxt = s => s === 'confirmed' ? t().stConfirmed : s === 'rejected' ? t().stRejected : t().stOpen;
 const nDays = (a,b) => Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00')) / 86400000) + 1;
 function toast(msgTxt){ const el = document.getElementById('toast'); el.textContent = msgTxt; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'), 2600); }
-async function api(p){ const r = await fetch(API_URL + '?' + new URLSearchParams(p)); return r.json(); }
+async function api(p){ const r = await fetch(API_URL + '?' + new URLSearchParams({...p, _:Date.now()}), {cache:'no-store'}); return r.json(); }
 
 function group(list){
   const m = {};

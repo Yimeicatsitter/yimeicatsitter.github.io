@@ -348,7 +348,7 @@ const timeTxt = t => t === 'morning' ? ta().timeMorning : t === 'evening' ? ta()
 const freqTxt = (f,t) => f === 'twice' ? ta().freqTwice : ta().freqOncePrefix + timeTxt(t);
 const stTxt = s => s === 'confirmed' ? ta().stConfirmed : s === 'rejected' ? ta().stRejected : ta().stOpen;
 function toast(t){ const el = document.getElementById('toast'); el.textContent = t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'), 2200); }
-async function api(p){ const r = await fetch(API_URL + '?' + new URLSearchParams({...p, a:key})); return r.json(); }
+async function api(p){ const r = await fetch(API_URL + '?' + new URLSearchParams({...p, a:key, _:Date.now()}), {cache:'no-store'}); return r.json(); }
 
 function blockedGroups(list){
   const sorted = list.slice().sort((a, b) => a.date.localeCompare(b.date));
