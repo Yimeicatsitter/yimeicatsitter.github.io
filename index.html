@@ -131,6 +131,12 @@ html[data-theme="winter"] .primary{background:linear-gradient(135deg,#5FA8C4,#B8
 .confetti-piece{position:fixed;pointer-events:none;z-index:999;will-change:transform,opacity;animation:confettiUp .85s ease-out forwards}
 .banner{width:100%;display:block;border-radius:16px;overflow:hidden;margin-bottom:14px;box-shadow:0 4px 14px rgba(0,0,0,.06)}
 .banner svg{display:block;width:100%;height:auto}
+.loadingWrap{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:70px 20px 40px;gap:12px}
+.loadingCat{width:130px;height:auto;animation:catBob 2.2s ease-in-out infinite}
+@keyframes catBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.loadingCat .tail{animation:tailWag .85s ease-in-out infinite}
+@keyframes tailWag{0%,100%{transform:rotate(-14deg)}50%{transform:rotate(16deg)}}
+.loadingText{font-size:14px;color:var(--muted);font-weight:700}
 @keyframes confettiUp{0%{transform:translate(-50%,-50%) scale(.5) rotate(0deg);opacity:1}100%{transform:translate(calc(-50% + var(--dx)),calc(-50% - 95px)) scale(1.15) rotate(var(--rot));opacity:0}}
  
 .calhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
@@ -191,7 +197,7 @@ html[data-theme="winter"] .primary{background:linear-gradient(135deg,#5FA8C4,#B8
 <path transform="translate(170,34) scale(0.6)" d="M0 0 C-6 -8 -18 -2 0 14 C18 -2 6 -8 0 0Z" fill="var(--bgc6)"/><path transform="translate(214,300) scale(0.5)" d="M0 0 C-6 -8 -18 -2 0 14 C18 -2 6 -8 0 0Z" fill="var(--bgc7)"/>
 <circle cx="150" cy="120" r="4" fill="var(--bgc9)"/><circle cx="322" cy="34" r="4" fill="var(--bgc1)"/>
 </g></pattern></defs><rect width="100%" height="100%" fill="url(#cats)"/></svg>
-<div class="wrap" id="app"><div class="empty">Laden …</div></div><div class="toast" id="toast"></div>
+<div class="wrap" id="app"><div class="loadingWrap"><svg viewBox="0 0 160 150" xmlns="http://www.w3.org/2000/svg" class="loadingCat" aria-hidden="true"><ellipse cx="80" cy="132" rx="36" ry="10" fill="#E8C9A0"/><ellipse cx="80" cy="129" rx="29" ry="6.5" fill="#FFE9C7"/><circle cx="68" cy="128" r="2.3" fill="#E0A868"/><circle cx="80" cy="130" r="2.3" fill="#E0A868"/><circle cx="92" cy="128" r="2.3" fill="#E0A868"/><g class="tail" style="transform-origin:106px 98px"><path d="M106 98 Q133 93 130 62 Q128 46 112 49" stroke="#FFD9E9" stroke-width="13" fill="none" stroke-linecap="round"/></g><ellipse cx="64" cy="111" rx="9" ry="7" fill="#FFD9E9"/><ellipse cx="96" cy="111" rx="9" ry="7" fill="#FFD9E9"/><path d="M46 77 L50 41 L72 56 Z" fill="#FFD9E9"/><path d="M114 77 L110 41 L88 56 Z" fill="#FFD9E9"/><ellipse cx="80" cy="83" rx="37" ry="30" fill="#FFD9E9"/><circle cx="68" cy="80" r="3.3" fill="#6B5A80"/><circle cx="92" cy="80" r="3.3" fill="#6B5A80"/><path d="M77 88 L83 88 L80 92 Z" fill="#FF9EB4"/><path d="M80 92 Q76 97 71 94 M80 92 Q84 97 89 94" stroke="#6B5A80" stroke-width="1.6" fill="none" stroke-linecap="round"/><g opacity="0.85"><circle cx="118" cy="24" r="2.6" fill="#FFC94D"/><circle cx="132" cy="38" r="1.8" fill="#FF9EC7"/><circle cx="106" cy="16" r="1.8" fill="#A8DAFF"/></g></svg><div class="loadingText">🐾 Leckerli wird vorbereitet …</div></div></div><div class="toast" id="toast"></div>
 <script>
 function mandatoryTheme(n){
   const m = n.getMonth() + 1, d = n.getDate();
@@ -333,6 +339,7 @@ let lang = 'de';
 try{ lang = localStorage.getItem('lang_' + K) || 'de'; }catch(e){}
 document.documentElement.lang = lang;
 const t = () => I18N[lang];
+if(lang === 'en'){ const lt = document.querySelector('.loadingText'); if(lt) lt.textContent = '🐾 Getting treats ready …'; }
 
 const seasonEmoji = s => ({spring:'🌸', summer:'☀️', autumn:'🍁', winter:'❄️'}[s]);
 function applyTheme(){
@@ -374,15 +381,17 @@ function group(list){
   }).sort((a,b) => b.start.localeCompare(a.start));
 }
 
+function saveLocal(){ try{ localStorage.setItem('c_' + K, JSON.stringify({name, bookings: days, blocked})); }catch(e){} }
 async function load(){
   if(ops > 0) return;
   if(!K){ app.innerHTML = `<div class="err">${t().linkErr}</div>`; return; }
-  // 刷新时不再用本地旧快照垫场——那会导致"先出现旧状态,几秒后才纠正"的闪烁。
-  // 老老实实等服务器回真实数据后再渲染一次，保证第一眼就是对的。
+  // 先用本地快照垫一下，秒开；本地快照在每次自己操作成功后都会同步更新，
+  // 加上下面这次请求本身强制不走缓存，两边理应一致——不会再出现"先错后对"的情况。
+  if(!built){ try{ const c = JSON.parse(localStorage.getItem('c_' + K) || 'null'); if(c){ name = c.name; days = c.bookings; blocked = c.blocked || []; render(); } }catch(e){} }
   try{
     const r = await api({action:'list', k:K});
     if(r.error){ localStorage.removeItem('c_' + K); built = false; app.innerHTML = `<div class="err">${t().invalidLink}</div>`; return; }
-    name = r.name; days = r.bookings; blocked = r.blocked || [];
+    name = r.name; days = r.bookings; blocked = r.blocked || []; try{ localStorage.setItem('c_' + K, JSON.stringify(r)); }catch(e){}
     render();
   }catch(e){ if(!built) app.innerHTML = `<div class="err">${t().connErr}</div>`; }
 }
@@ -474,7 +483,7 @@ function render(){
         renderList(); toast(t().toastCancelReqSent);
         ops++;
         let failed1 = false;
-        try{ const r = await api({action:'requestCancel', k:K, sid}); if(r.error){ failed1 = true; days = backup; renderList(); toast(t().toastErr(r.error)); } }
+        try{ const r = await api({action:'requestCancel', k:K, sid}); if(r.error){ failed1 = true; days = backup; renderList(); toast(t().toastErr(r.error)); } else saveLocal(); }
         catch(err){ failed1 = true; days = backup; renderList(); toast(t().toastConnFail); }
         ops--; if(!ops && failed1) load();
         return;
@@ -486,7 +495,7 @@ function render(){
       renderList(); toast(t().toastWithdrawn);
       ops++;
       let failed2 = false;
-      try{ const r = await api({action:'cancel', k:K, sid}); if(r.error){ failed2 = true; days = backup; renderList(); toast(t().toastErr(r.error)); } }
+      try{ const r = await api({action:'cancel', k:K, sid}); if(r.error){ failed2 = true; days = backup; renderList(); toast(t().toastErr(r.error)); } else saveLocal(); }
       catch(err){ failed2 = true; days = backup; renderList(); toast(t().toastConnFail); }
       ops--; if(!ops && failed2) load();
     };
@@ -609,7 +618,7 @@ async function send(){
     else if(r.items){
       // 把服务器真正生成的记录（带真实 id）换掉本地那批临时占位的，不用整页重新拉取
       days = days.filter(d => d.seriesId !== sid).concat(r.items);
-      renderList();
+      renderList(); saveLocal();
     }
   }catch(e){ failedSend = true; days = days.filter(d => d.seriesId !== sid); renderList(); toast(t().toastConnFailResend); }
   finally{ sending = false; btn.disabled = false; btn.style.opacity = ''; }
