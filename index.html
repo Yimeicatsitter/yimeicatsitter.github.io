@@ -381,17 +381,15 @@ function group(list){
   }).sort((a,b) => b.start.localeCompare(a.start));
 }
 
-function saveLocal(){ try{ localStorage.setItem('c_' + K, JSON.stringify({name, bookings: days, blocked})); }catch(e){} }
 async function load(){
   if(ops > 0) return;
   if(!K){ app.innerHTML = `<div class="err">${t().linkErr}</div>`; return; }
-  // 先用本地快照垫一下，秒开；本地快照在每次自己操作成功后都会同步更新，
-  // 加上下面这次请求本身强制不走缓存，两边理应一致——不会再出现"先错后对"的情况。
-  if(!built){ try{ const c = JSON.parse(localStorage.getItem('c_' + K) || 'null'); if(c){ name = c.name; days = c.bookings; blocked = c.blocked || []; render(); } }catch(e){} }
+  // 每次都先老实显示等待动画，等服务器真正确认过的数据回来了再画一次——
+  // 不再用本地快照抢跑，体验统一：要么是等待画面，要么就是已经确认过的正确结果，不会有中间态。
   try{
     const r = await api({action:'list', k:K});
     if(r.error){ localStorage.removeItem('c_' + K); built = false; app.innerHTML = `<div class="err">${t().invalidLink}</div>`; return; }
-    name = r.name; days = r.bookings; blocked = r.blocked || []; try{ localStorage.setItem('c_' + K, JSON.stringify(r)); }catch(e){}
+    name = r.name; days = r.bookings; blocked = r.blocked || [];
     render();
   }catch(e){ if(!built) app.innerHTML = `<div class="err">${t().connErr}</div>`; }
 }
@@ -483,7 +481,7 @@ function render(){
         renderList(); toast(t().toastCancelReqSent);
         ops++;
         let failed1 = false;
-        try{ const r = await api({action:'requestCancel', k:K, sid}); if(r.error){ failed1 = true; days = backup; renderList(); toast(t().toastErr(r.error)); } else saveLocal(); }
+        try{ const r = await api({action:'requestCancel', k:K, sid}); if(r.error){ failed1 = true; days = backup; renderList(); toast(t().toastErr(r.error)); } }
         catch(err){ failed1 = true; days = backup; renderList(); toast(t().toastConnFail); }
         ops--; if(!ops && failed1) load();
         return;
@@ -495,7 +493,7 @@ function render(){
       renderList(); toast(t().toastWithdrawn);
       ops++;
       let failed2 = false;
-      try{ const r = await api({action:'cancel', k:K, sid}); if(r.error){ failed2 = true; days = backup; renderList(); toast(t().toastErr(r.error)); } else saveLocal(); }
+      try{ const r = await api({action:'cancel', k:K, sid}); if(r.error){ failed2 = true; days = backup; renderList(); toast(t().toastErr(r.error)); } }
       catch(err){ failed2 = true; days = backup; renderList(); toast(t().toastConnFail); }
       ops--; if(!ops && failed2) load();
     };
@@ -618,7 +616,7 @@ async function send(){
     else if(r.items){
       // 把服务器真正生成的记录（带真实 id）换掉本地那批临时占位的，不用整页重新拉取
       days = days.filter(d => d.seriesId !== sid).concat(r.items);
-      renderList(); saveLocal();
+      renderList();
     }
   }catch(e){ failedSend = true; days = days.filter(d => d.seriesId !== sid); renderList(); toast(t().toastConnFailResend); }
   finally{ sending = false; btn.disabled = false; btn.style.opacity = ''; }

@@ -232,6 +232,8 @@ const BANNERS = {
   halloween: '<svg viewBox="0 0 340 150" xmlns="http://www.w3.org/2000/svg"><rect width="340" height="150" fill="#FFF6EC"/><ellipse cx="170" cy="145" rx="170" ry="10" fill="#FBE6CE"/><g transform="translate(55,35)" opacity="0.9"><ellipse rx="8" ry="7" fill="#6B3FA0"/><path d="M-8 -2 Q-22 -14 -28 0 Q-16 0 -8 6Z" fill="#6B3FA0"/><path d="M8 -2 Q22 -14 28 0 Q16 0 8 6Z" fill="#6B3FA0"/><circle cx="-3" cy="-1" r="1.3" fill="#fff"/><circle cx="3" cy="-1" r="1.3" fill="#fff"/><path d="M-2 3 Q0 5 2 3" stroke="#fff" stroke-width="1" fill="none" stroke-linecap="round"/></g><g transform="translate(295,55) scale(0.8)" opacity="0.9"><ellipse rx="8" ry="7" fill="#8B5FBF"/><path d="M-8 -2 Q-22 -14 -28 0 Q-16 0 -8 6Z" fill="#8B5FBF"/><path d="M8 -2 Q22 -14 28 0 Q16 0 8 6Z" fill="#8B5FBF"/><circle cx="-3" cy="-1" r="1.3" fill="#fff"/><circle cx="3" cy="-1" r="1.3" fill="#fff"/></g><g transform="translate(255,115)"><path d="M0 -38 Q-3 -30 0 -26" stroke="#4A7A3A" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="0" cy="0" rx="34" ry="26" fill="#E8823D"/><path d="M-17 -24 Q-17 2 -17 24 M0 -26 Q0 2 0 26 M17 -24 Q17 2 17 24" stroke="#D9631A" stroke-width="2.5" fill="none"/><path d="M-11 -6 L-5 -6 L-8 -1 Z" fill="#5A3A1A"/><path d="M11 -6 L5 -6 L8 -1 Z" fill="#5A3A1A"/><path d="M-8 8 Q0 13 8 8" stroke="#5A3A1A" stroke-width="2.5" fill="none" stroke-linecap="round"/></g><g transform="translate(120,108)"><path d="M-30 -8 Q-45 30 -20 38 Q0 25 20 38 Q45 30 30 -8 Q0 -20 -30 -8Z" fill="#3D2B4F"/><path d="M-30 -8 Q-45 30 -20 38 Q0 25 20 38 Q45 30 30 -8" fill="none" stroke="#2B1D3A" stroke-width="1.5"/><ellipse rx="30" ry="24" fill="#FFB3D1"/><path d="M-27 -5 L-24 -33 L-8 -21 Z" fill="#FFB3D1"/><path d="M27 -5 L24 -33 L8 -21 Z" fill="#FFB3D1"/><path d="M-24 -6 Q-24 -16 -10 -16 Q0 -12 10 -16 Q24 -16 24 -6 Q14 -2 0 -2 Q-14 -2 -24 -6Z" fill="#3D2B4F"/><circle cx="-11" cy="-8" r="2.6" fill="#fff"/><circle cx="11" cy="-8" r="2.6" fill="#fff"/><path d="M-3 8 L-1 13 L-5 13Z" fill="#fff"/><path d="M3 8 L1 13 L5 13Z" fill="#fff"/><path d="M-6 6 Q0 11 6 6" stroke="#8B3A2B" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M-20 6 L-34 2 M-20 11 L-34 14 M20 6 L34 2 M20 11 L34 14" stroke="#6B5A80" stroke-width="1.3" stroke-linecap="round"/></g></svg>'
 };
 function currentThemeKey(){ const d = document.documentElement.dataset.theme; return BANNERS[d] ? d : null; }
+const LOADING_HTML_ZH = '<div class="loadingWrap"><svg viewBox="0 0 160 150" xmlns="http://www.w3.org/2000/svg" class="loadingCat" aria-hidden="true"><ellipse cx="80" cy="132" rx="36" ry="10" fill="#E8C9A0"/><ellipse cx="80" cy="129" rx="29" ry="6.5" fill="#FFE9C7"/><circle cx="68" cy="128" r="2.3" fill="#E0A868"/><circle cx="80" cy="130" r="2.3" fill="#E0A868"/><circle cx="92" cy="128" r="2.3" fill="#E0A868"/><g class="tail" style="transform-origin:106px 98px"><path d="M106 98 Q133 93 130 62 Q128 46 112 49" stroke="#FFD9E9" stroke-width="13" fill="none" stroke-linecap="round"/></g><ellipse cx="64" cy="111" rx="9" ry="7" fill="#FFD9E9"/><ellipse cx="96" cy="111" rx="9" ry="7" fill="#FFD9E9"/><path d="M46 77 L50 41 L72 56 Z" fill="#FFD9E9"/><path d="M114 77 L110 41 L88 56 Z" fill="#FFD9E9"/><ellipse cx="80" cy="83" rx="37" ry="30" fill="#FFD9E9"/><circle cx="68" cy="80" r="3.3" fill="#6B5A80"/><circle cx="92" cy="80" r="3.3" fill="#6B5A80"/><path d="M77 88 L83 88 L80 92 Z" fill="#FF9EB4"/><path d="M80 92 Q76 97 71 94 M80 92 Q84 97 89 94" stroke="#6B5A80" stroke-width="1.6" fill="none" stroke-linecap="round"/><g opacity="0.85"><circle cx="118" cy="24" r="2.6" fill="#FFC94D"/><circle cx="132" cy="38" r="1.8" fill="#FF9EC7"/><circle cx="106" cy="16" r="1.8" fill="#A8DAFF"/></g></svg><div class="loadingText">🐾 猫粮准备中…</div></div>';
+const LOADING_HTML_EN = '<div class="loadingWrap"><svg viewBox="0 0 160 150" xmlns="http://www.w3.org/2000/svg" class="loadingCat" aria-hidden="true"><ellipse cx="80" cy="132" rx="36" ry="10" fill="#E8C9A0"/><ellipse cx="80" cy="129" rx="29" ry="6.5" fill="#FFE9C7"/><circle cx="68" cy="128" r="2.3" fill="#E0A868"/><circle cx="80" cy="130" r="2.3" fill="#E0A868"/><circle cx="92" cy="128" r="2.3" fill="#E0A868"/><g class="tail" style="transform-origin:106px 98px"><path d="M106 98 Q133 93 130 62 Q128 46 112 49" stroke="#FFD9E9" stroke-width="13" fill="none" stroke-linecap="round"/></g><ellipse cx="64" cy="111" rx="9" ry="7" fill="#FFD9E9"/><ellipse cx="96" cy="111" rx="9" ry="7" fill="#FFD9E9"/><path d="M46 77 L50 41 L72 56 Z" fill="#FFD9E9"/><path d="M114 77 L110 41 L88 56 Z" fill="#FFD9E9"/><ellipse cx="80" cy="83" rx="37" ry="30" fill="#FFD9E9"/><circle cx="68" cy="80" r="3.3" fill="#6B5A80"/><circle cx="92" cy="80" r="3.3" fill="#6B5A80"/><path d="M77 88 L83 88 L80 92 Z" fill="#FF9EB4"/><path d="M80 92 Q76 97 71 94 M80 92 Q84 97 89 94" stroke="#6B5A80" stroke-width="1.6" fill="none" stroke-linecap="round"/><g opacity="0.85"><circle cx="118" cy="24" r="2.6" fill="#FFC94D"/><circle cx="132" cy="38" r="1.8" fill="#FF9EC7"/><circle cx="106" cy="16" r="1.8" fill="#A8DAFF"/></g></svg><div class="loadingText">🐾 Getting treats ready …</div></div>';
 function celebrate(x, y){
   const parts = ['🐾','💖','✨','🐱','🎉'];
   for(let i = 0; i < 10; i++){
@@ -442,13 +444,14 @@ function loginView(msg){
 async function load(fromLogin){
   if(ops > 0 && !fromLogin) return;
   if(!key){ loginView(); return; }
-  // 先用本地快照垫一下，秒开；本地快照在每次自己操作成功后都会同步更新，
-  // 加上下面这次请求本身强制不走缓存，两边理应一致——不会再出现"先错后对"的情况。
-  if(!shown){ try{ const c = JSON.parse(localStorage.getItem('adminData') || 'null'); if(c){ data = c; if(!data.blocked) data.blocked = []; shown = true; render(); } }catch(e){} }
+  // 还没真的显示过一次数据的话（刚登录、或者刚打开页面），先老实展示等待动画，
+  // 等服务器真正确认过的数据回来了再画一次；已经在显示数据的情况下（比如后台每 60 秒的自动同步），
+  // 就不要再用等待画面打断当前画面，悄悄刷新就好。
+  if(!shown){ app.innerHTML = langA === 'en' ? LOADING_HTML_EN : LOADING_HTML_ZH; }
   try{
     const r = await api({action:'adminList'});
-    if(r.error){ localStorage.removeItem('adminKey'); localStorage.removeItem('adminData'); shown = false; key = ''; loginView(fromLogin ? ta().wrongPw : ''); return; }
-    localStorage.setItem('adminKey', key); data = r; if(!data.blocked) data.blocked = []; shown = true; try{ localStorage.setItem('adminData', JSON.stringify(r)); }catch(e){} render();
+    if(r.error){ localStorage.removeItem('adminKey'); shown = false; key = ''; loginView(fromLogin ? ta().wrongPw : ''); return; }
+    localStorage.setItem('adminKey', key); data = r; if(!data.blocked) data.blocked = []; shown = true; render();
   }catch(e){ if(fromLogin) loginView(ta().connFail); }
 }
 
@@ -637,7 +640,6 @@ async function run(call, revert){
   try{
     const r = await call();
     if(r.error){ failed = true; revert(); render(); toast(ta().toastFail(r.error)); }
-    else{ try{ localStorage.setItem('adminData', JSON.stringify(data)); }catch(e){} }
   }
   catch(e){ failed = true; revert(); render(); toast(ta().toastNetFail); }
   ops--; if(!ops && failed) load();
