@@ -375,6 +375,7 @@ function group(list){
   }).sort((a,b) => b.start.localeCompare(a.start));
 }
 
+function saveLocal(){ try{ localStorage.setItem('c_' + K, JSON.stringify({name, bookings: days, blocked})); }catch(e){} }
 async function load(){
   if(ops > 0) return;
   if(!K){ app.innerHTML = `<div class="err">${t().linkErr}</div>`; return; }
@@ -474,7 +475,7 @@ function render(){
         renderList(); toast(t().toastCancelReqSent);
         ops++;
         let failed1 = false;
-        try{ const r = await api({action:'requestCancel', k:K, sid}); if(r.error){ failed1 = true; days = backup; renderList(); toast(t().toastErr(r.error)); } }
+        try{ const r = await api({action:'requestCancel', k:K, sid}); if(r.error){ failed1 = true; days = backup; renderList(); toast(t().toastErr(r.error)); } else saveLocal(); }
         catch(err){ failed1 = true; days = backup; renderList(); toast(t().toastConnFail); }
         ops--; if(!ops && failed1) load();
         return;
@@ -486,7 +487,7 @@ function render(){
       renderList(); toast(t().toastWithdrawn);
       ops++;
       let failed2 = false;
-      try{ const r = await api({action:'cancel', k:K, sid}); if(r.error){ failed2 = true; days = backup; renderList(); toast(t().toastErr(r.error)); } }
+      try{ const r = await api({action:'cancel', k:K, sid}); if(r.error){ failed2 = true; days = backup; renderList(); toast(t().toastErr(r.error)); } else saveLocal(); }
       catch(err){ failed2 = true; days = backup; renderList(); toast(t().toastConnFail); }
       ops--; if(!ops && failed2) load();
     };
@@ -609,7 +610,7 @@ async function send(){
     else if(r.items){
       // 把服务器真正生成的记录（带真实 id）换掉本地那批临时占位的，不用整页重新拉取
       days = days.filter(d => d.seriesId !== sid).concat(r.items);
-      renderList();
+      renderList(); saveLocal();
     }
   }catch(e){ failedSend = true; days = days.filter(d => d.seriesId !== sid); renderList(); toast(t().toastConnFailResend); }
   finally{ sending = false; btn.disabled = false; btn.style.opacity = ''; }

@@ -625,7 +625,11 @@ async function run(call, revert){
   // 失败了才重新拉取一次数据校正。每 60 秒还有后台轮询兜底同步。
   ops++;
   let failed = false;
-  try{ const r = await call(); if(r.error){ failed = true; revert(); render(); toast(ta().toastFail(r.error)); } }
+  try{
+    const r = await call();
+    if(r.error){ failed = true; revert(); render(); toast(ta().toastFail(r.error)); }
+    else{ try{ localStorage.setItem('adminData', JSON.stringify(data)); }catch(e){} } // 同步本地快照，刷新时不再垫出旧状态
+  }
   catch(e){ failed = true; revert(); render(); toast(ta().toastNetFail); }
   ops--; if(!ops && failed) load();
 }
